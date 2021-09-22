@@ -7,11 +7,11 @@ set(PROJECT_NAME teetest)
 
 set(PROJ_SRC_FILES  SL_${PROJECT_NAME})
 set(CMAKE_COLOR_MAKEFILE TRUE)
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(cdir "${CMAKE_SOURCE_DIR}")
-INCLUDE("${CMAKE_SOURCE_DIR}/toolchain.cmake")
-INCLUDE("${CMAKE_SOURCE_DIR}/ccmake.cmake")
+INCLUDE("${CMAKE_SOURCE_DIR}/cmake/toolchain.cmake")
+INCLUDE("${CMAKE_SOURCE_DIR}/cmake/ccmake.cmake")
 
 #if (tbProto)
 ENABLE_LANGUAGE(ASM  C CXX)
@@ -42,11 +42,11 @@ set(ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release")
 
 add_definitions(-DOURPROJECTNAME=${PROJECT_NAME})
-add_definitions(-DNOMINMAX)
+#add_definitions(-DNOMINMAX)
 #add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS)
 
 set(ourGroupNames)
-set (foldersList  test/blink pjrc/teensy4 pjrc/teensy)
+set (foldersList  test/blink pjrc/teensy4) #  pjrc/teensy)
 set(INC_DIR_LIST ${COREPATH}) # C:/programs/teensy/tools/arm/arm-none-eabi/include)
 
 FOREACH(i ${foldersList})
@@ -89,23 +89,34 @@ endforeach()
 
 PROJECT(${PROJECT_NAME})
 
-message(STATUS "PROJ_SRC_FILES = ${${PROJ_SRC_FILES}}")
+#message(STATUS "PROJ_SRC_FILES = ${${PROJ_SRC_FILES}}")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${${PROJ_SRC_FILES}})
 INCLUDE_DIRECTORIES(${INC_DIR_LIST}) 
+#SET_TARGET_PROPERTIES( ${PROJECT_NAME}
+#	PROPERTIES    DEBUG_OUTPUT_NAME "${PROJECT_NAME}d.elf"    RELEASE_OUTPUT_NAME "${PROJECT_NAME}.elf"
+#	ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${BUILD_DIR}/debug"  ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release"
+#)
 SET_TARGET_PROPERTIES( ${PROJECT_NAME}
-	PROPERTIES    DEBUG_OUTPUT_NAME "${PROJECT_NAME}d.elf"    RELEASE_OUTPUT_NAME "${PROJECT_NAME}.elf"
-	ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${BUILD_DIR}/debug"  ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release"
+	PROPERTIES    
+
+	DEBUG_OUTPUT_NAME "${PROJECT_NAME}d.elf"    
+	RELEASE_OUTPUT_NAME "${PROJECT_NAME}.elf"
+	OUTPUT_NAME "${PROJECT_NAME}.elf"
+
+#	ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${BUILD_DIR}/debug"  
+#	ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release"
+#	ARCHIVE_OUTPUT_DIRECTORY "${BUILD_DIR}/release"
 )
 target_link_libraries(${PROJECT_NAME}  ${LIBS})
 
 #set(atools $ENV{TEENSY_TOOLS})
 
 add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
-	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/release/${PROJECT_NAME}.elf"
-	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/release/${PROJECT_NAME}.elf ${BUILD_DIR}/release/${PROJECT_NAME}.hex
+	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
+	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
 	COMMAND  ${atools}/teensy_post_compile 
-		ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR}/release -tools="${atools}"
+		ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
 	COMMAND echo  teensy post buld completed 
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 	COMMENT "makeing HEX file" VERBATIM)

@@ -1,4 +1,4 @@
-mkdir -p build
-cd build
-cmake -G "Ninja"  -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake   -DCMAKE_BUILD_TYPE=Release   ../. 
+mkdir -p build1
+cd build1
+cmake -G "Ninja"  -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake  ../. 
 cd ..
