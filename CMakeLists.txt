@@ -5,12 +5,14 @@ cmake_minimum_required (VERSION 3.16)
 
 set(PROJECT_NAME teetest)
 
+PROJECT(${PROJECT_NAME})
+
 set(PROJ_SRC_FILES  SL_${PROJECT_NAME})
 set(CMAKE_COLOR_MAKEFILE TRUE)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(cdir "${CMAKE_SOURCE_DIR}")
-INCLUDE("${CMAKE_SOURCE_DIR}/cmake/toolchain.cmake")
+#INCLUDE("${CMAKE_SOURCE_DIR}/cmake/toolchain.cmake")
 INCLUDE("${CMAKE_SOURCE_DIR}/cmake/ccmake.cmake")
 
 #if (tbProto)
@@ -47,7 +49,7 @@ add_definitions(-DOURPROJECTNAME=${PROJECT_NAME})
 
 set(ourGroupNames)
 set (foldersList  test/blink pjrc/teensy4) #  pjrc/teensy)
-set(INC_DIR_LIST ${COREPATH}) # C:/programs/teensy/tools/arm/arm-none-eabi/include)
+#set(INC_DIR_LIST ${COREPATH}) # C:/programs/teensy/tools/arm/arm-none-eabi/include)
 
 FOREACH(i ${foldersList})
 	#message(STATUS ${i})
@@ -84,10 +86,8 @@ endforeach()
 
 #message(STATUS "INC_DIR_LIST = ")
 foreach(dir  ${INC_DIR_LIST})
-	message(STATUS "    ${dir}")
+	message(STATUS "  -I    ${dir}")
 endforeach()
-
-PROJECT(${PROJECT_NAME})
 
 #message(STATUS "PROJ_SRC_FILES = ${${PROJ_SRC_FILES}}")
 
@@ -108,7 +108,8 @@ SET_TARGET_PROPERTIES( ${PROJECT_NAME}
 #	ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release"
 #	ARCHIVE_OUTPUT_DIRECTORY "${BUILD_DIR}/release"
 )
-target_link_libraries(${PROJECT_NAME}  ${LIBS})
+
+#target_link_libraries(${PROJECT_NAME}  ${LIBS})
 
 #set(atools $ENV{TEENSY_TOOLS})
 

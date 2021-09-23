@@ -14,6 +14,7 @@ message(STATUS ${CMAKE_GENERATOR})
 set(CMAKE_SYSTEM_NAME Generic)
 #set (CMAKE_SYSTEM_VERSION )
 set(CMAKE_SYSTEM_PROCESSOR arm)
+include("${CMAKE_CURRENT_LIST_DIR}/options.cmake")
 
 set(atools "$ENV{TEENSY_TOOLS}")
 set(gcc_path "$ENV{GCC_ARM}")
@@ -71,10 +72,10 @@ set(CDEFS "-DUSB_SERIAL -DLAYOUT_US_ENGLISH -DUSING_MAKEFILE -DXM_ARM -D__arm__ 
 
 
 
-set (BUILDDIR  build)
-set (BUILD_DIR  build)
-#set (COREPATH "${CMAKE_CURRENT_LIST_DIR}/pjrc/teensy4")
-set (COREPATH "${CMAKE_CURRENT_LIST_DIR}/../pjrc/teensy4")
+#set (BUILDDIR  build)
+#set (BUILD_DIR  build)
+#set (COREPATH "${CMAKE_CURRENT_LIST_DIR}/../pjrc/teensy4")
+file(REAL_PATH "${CMAKE_CURRENT_LIST_DIR}/../pjrc/teensy4" COREPATH)
 
 # for Cortex M7 with single & double precision FPU
 set(CPUOPTIONS " -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16 -mthumb ")  #-ffast-math
@@ -86,15 +87,11 @@ set(CPUOPTIONS " -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16 -mthumb ")  #-f
 #set(files bootdata.c)
 
 # CPPFLAGS = compiler options for C and C++
-#set(CPPFLAGS " -Wall -g -O2 -mthumb -ffunction-sections -fdata-sections -MMD ") # -Wno-switch " ) #  -Wdouble-promotion " )
-set(CPPFLAGS " -Wall -Os -fstack-usage ${CPUOPTIONS} -MMD -I. -ffunction-sections -fdata-sections ")
-
-set(CPPFLAGS  " ${CPPFLAGS} ${CDEFS} ") #  -Wno-switch -funwind-tables  -fasynchronous-unwind-tables ")
+#set(CPPFLAGS " -Wall -g -O2 -mthumb -ffunction-sections -fdata-sections -MMD ")
+set(CPPFLAGS " -Wall -O2 ${CPUOPTIONS} ${CDEFS} -MMD -I. -ffunction-sections -fdata-sections ")  #  -fstack-usage # -Wno-switch " ) #  -Wdouble-promotion " -Wno-switch -funwind-tables  -fasynchronous-unwind-tables )
 
 # compiler options for C++ only
-#set(CXXFLAGS  " -felide-constructors  -fno-rtti  -fsized-deallocation")  #  -fno-exceptions
-set(CXXFLAGS  " -std=gnu++14 -felide-constructors -fno-exceptions -fpermissive -fno-rtti -Wno-error=narrowing ")
-
+set(CXXFLAGS  " -std=gnu++14 -felide-constructors -fno-exceptions -fpermissive -fno-rtti -Wno-error=narrowing ") #-fsized-deallocation
 
 # compiler options for C only
 #set (CFLAGS )
