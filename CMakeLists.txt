@@ -99,7 +99,6 @@ INCLUDE_DIRECTORIES(${INC_DIR_LIST})
 #)
 SET_TARGET_PROPERTIES( ${PROJECT_NAME}
 	PROPERTIES    
-
 	DEBUG_OUTPUT_NAME "${PROJECT_NAME}d.elf"    
 	RELEASE_OUTPUT_NAME "${PROJECT_NAME}.elf"
 	OUTPUT_NAME "${PROJECT_NAME}.elf"
@@ -114,23 +113,32 @@ SET_TARGET_PROPERTIES( ${PROJECT_NAME}
 #set(atools $ENV{TEENSY_TOOLS})
 
 if (WIN32)
-add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
-	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
-	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
-	COMMAND  ${atools}/teensy_post_compile 
-		ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
-	COMMAND echo  teensy post buld completed 
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-	COMMENT "makeing HEX file" VERBATIM)
+	add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
+		COMMAND echo  "-------teensy post buld started---------" 
+		COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
+		COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
+		COMMAND  ${atools}/teensy_post_compile.exe 
+			ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
+		COMMAND echo  "teensy post buld completed" 
+		BYPRODUCTS ${BUILD_DIR}/${PROJECT_NAME}.hex
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "---------teensy post build--------------" 
+		VERBATIM 
+		USES_TERMINAL
+	)
 else()
-add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
-	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
-	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
-	#COMMAND  ${atools}/teensy_post_compile 
-	#	ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
-	#COMMAND echo  teensy post buld completed 
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-	COMMENT "makeing HEX file" VERBATIM)
+	add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
+		COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
+		COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
+		#COMMAND  ${atools}/teensy_post_compile 
+		#	ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
+		#COMMAND echo  "teensy post buld completed" 
+		BYPRODUCTS ${BUILD_DIR}/${PROJECT_NAME}.hex
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "makeing HEX file" 
+		VERBATIM 
+		USES_TERMINAL
+	)
 
 endif()
 
