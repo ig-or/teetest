@@ -1,2 +1,5 @@
 build
 build1
+*.d 
+*.o
+

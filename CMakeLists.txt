@@ -12,7 +12,7 @@ set(CMAKE_COLOR_MAKEFILE TRUE)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(cdir "${CMAKE_SOURCE_DIR}")
-#INCLUDE("${CMAKE_SOURCE_DIR}/cmake/toolchain.cmake")
+INCLUDE("${CMAKE_SOURCE_DIR}/cmake/options.cmake")
 INCLUDE("${CMAKE_SOURCE_DIR}/cmake/ccmake.cmake")
 
 #if (tbProto)
@@ -113,6 +113,7 @@ SET_TARGET_PROPERTIES( ${PROJECT_NAME}
 
 #set(atools $ENV{TEENSY_TOOLS})
 
+if (WIN32)
 add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
 	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
 	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
@@ -121,6 +122,17 @@ add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD
 	COMMAND echo  teensy post buld completed 
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 	COMMENT "makeing HEX file" VERBATIM)
+else()
+add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
+	COMMAND ${CMAKE_SIZE} ARGS "${BUILD_DIR}/${PROJECT_NAME}.elf"
+	COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${BUILD_DIR}/${PROJECT_NAME}.elf ${BUILD_DIR}/${PROJECT_NAME}.hex
+	#COMMAND  ${atools}/teensy_post_compile 
+	#	ARGS -file=${PROJECT_NAME} -path=${BUILD_DIR} -tools="${atools}"
+	#COMMAND echo  teensy post buld completed 
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	COMMENT "makeing HEX file" VERBATIM)
+
+endif()
 
 add_custom_target(
 	run ${atools}/teensy_reboot

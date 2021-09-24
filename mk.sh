@@ -1,35 +1,27 @@
-@echo off
-cls
-cd build
+#!/usr/bin/env bash
+cd build1
 echo building the sw....
-ninja -j 16
-if errorlevel 1 (
-   echo MAKE failed with return code %errorlevel%
+ninja 
+if [ $? -eq 0 ] 
+then
+	echo "NINJA SUCCEEDED"
+else
+	echo "NINJA FAILED"
+	exit 1
+fi
+
+#exit 0
+
+echo "loading the software ...."
+$TEENSY_TOOLS/teensy_reboot
+
+if [ $? -eq 0 ] 
+then
+    echo "REBOOT OK"
+else
+   echo "REBOOT failed"
    cd ..
-   exit /b %errorlevel%
-)
+   exit 1
+fi
 
-@REM : make run
-echo loading the software ....
-start /WAIT "loading the firmware into the  Teensy board" "%TEENSY_TOOLS%\teensy_reboot.exe"
-if errorlevel 1 (
-   echo REBOOT failed with return code %errorlevel%
-   cd ..
-   exit /b %errorlevel%
-)
-
-
-cd ..
-cd lib-vs2019-x64\release
-@REM cls
-echo 'make' was OK; starting USB console ..
-
-PING localhost -n 6 >NUL
-
-echo starting....
-tusb.exe %1
-if errorlevel 1 (
-   echo USB console failed with return code %errorlevel%
-)
-cd ..
-cd ..
+exit 0
