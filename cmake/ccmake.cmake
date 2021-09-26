@@ -2,7 +2,7 @@
 # collect all the subdirectories from curdir into flist:
 MACRO(SUBDIRLIST flist curdir)
 	FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)
-	#message(STATUS "curdir = ${curdir};  children = ${children}")
+	#message(STATUS "SUBDIRLIST; curdir = ${curdir};  children = ${children}")
 
 	FOREACH(child ${children})
 		if(${child} IN_LIST SKIP_LIBS_LIST)
@@ -13,7 +13,7 @@ MACRO(SUBDIRLIST flist curdir)
 				if (EXISTS "${theLib}/utility") # 
 					list(APPEND ${flist} "${theLib}/utility")
 				endif()
-				if (EXISTS "${theLib}/src") # in thei case, we need only what is inside
+				if (EXISTS "${theLib}/src") # in this case, we need only what is inside
 					list(APPEND ${flist} "${theLib}/src")
 					SUBDIRLIST(sub_dirs ${theLib}/src)
 					FOREACH(subdir ${sub_dirs})
@@ -79,6 +79,7 @@ macro (addSourceFiles groupName sourceFilesPath)
 	endif()
 	#message (STATUS ${files})
 	if (files)
+		message(STATUS "adding folder ${sfp}")
 		list(APPEND INC_DIR_LIST ${sfp})
 		list(APPEND group_${groupName}_files ${files}) # add files to the 'group file list'
 		if (NOT ${groupName} IN_LIST ourGroupNames)

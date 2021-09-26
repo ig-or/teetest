@@ -1,9 +1,10 @@
 
 #include <Arduino.h>
-#include "usb_serial.h"
-
 const int ledPin = 13;
 const int maxPWM = 65535;  // because of the 16 bit resolution
+
+#include <TFT.h>  // Arduino LCD library
+#include <SPI.h>
 
 extern "C" int main(void) {
   // initialize the digital pin as an output.
@@ -14,8 +15,6 @@ extern "C" int main(void) {
 	//analogWriteFrequency(ledPin, 915.527);
 	int p = 0;
 	int phase;
-	unsigned int hsTime = 0;
-	const int hsPeriod = 2000;
 	while (1) {
 		now = millis();
 		phase = (now % 2000);
@@ -26,10 +25,6 @@ extern "C" int main(void) {
 		}
 		if ( p > mpw) {
 			  p = mpw;
-		}
-		if (now - hsTime > hsPeriod) {
-			hsTime = now;
-			usb_serial_write("hello!\r\n", 9);
 		}
 		
 		//digitalWriteFast(13, HIGH);

@@ -48,7 +48,15 @@ add_definitions(-DOURPROJECTNAME=${PROJECT_NAME})
 #add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS)
 
 set(ourGroupNames)
-set (foldersList  test/blink pjrc/teensy4) #  pjrc/teensy)
+SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
+SUBDIRLIST(arduino_libs ${CMAKE_SOURCE_DIR}/arduino)
+set (foldersList  
+	test/blink 
+	pjrc/teensy4 
+	${pjrc_libs}
+	${arduino_libs}
+) #  pjrc/teensy)
+
 #set(INC_DIR_LIST ${COREPATH}) # C:/programs/teensy/tools/arm/arm-none-eabi/include)
 
 FOREACH(i ${foldersList})
