@@ -52,6 +52,7 @@ SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
 SUBDIRLIST(arduino_libs ${CMAKE_SOURCE_DIR}/arduino)
 set (foldersList  
 	test/blink 
+	src
 	pjrc/teensy4 
 	${pjrc_libs}
 	${arduino_libs}

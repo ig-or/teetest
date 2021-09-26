@@ -2,15 +2,17 @@
 #include <Arduino.h>
 #include "usb_serial.h"
 
-const int ledPin = 13;
-const int maxPWM = 65535;  // because of the 16 bit resolution
+#include "ttpins.h"
+#include "ttsetup.h"
+
 
 extern "C" int main(void) {
   // initialize the digital pin as an output.
-	pinMode(ledPin, OUTPUT);	
+	ttSetup();
+		
 	uint32_t now = millis();
 	int mpw = maxPWM / 2;
-	analogWriteResolution(16);
+	
 	//analogWriteFrequency(ledPin, 915.527);
 	int p = 0;
 	int phase;
