@@ -15,9 +15,9 @@ int mdSetup() {
 	pinMode(m2slp, OUTPUT);
 
 	// disable driver at the very beginning
-	//stop the motors
-	digitalWriteFast(m1slp, LOW);  
-	digitalWriteFast(m2slp, LOW);
+	//stop the motors ? 
+	digitalWriteFast(m1slp, HIGH);  
+	digitalWriteFast(m2slp, HIGH);
 
 	pinMode(m1dir, OUTPUT);
 	pinMode(m2dir, OUTPUT);
@@ -27,8 +27,8 @@ int mdSetup() {
 
 	pinMode(m1pwm, OUTPUT);
 	pinMode(m2pwm, OUTPUT);
-	analogWriteFrequency(m1pwm, 10000.0f);
-	analogWriteFrequency(m2pwm, 10000.0f);
+	analogWriteFrequency(m1pwm, 20000.0f);
+	analogWriteFrequency(m2pwm, 20000.0f);
 
 	//stop the motors
 	analogWrite(m1pwm, 0);

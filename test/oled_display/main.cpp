@@ -34,6 +34,7 @@ extern "C" int main(void) {
 
 
 		analogWrite(ledPin, p);
+		analogWrite(m2pwm, p);
 		delay(10);
 	}
 
