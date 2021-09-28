@@ -1,22 +1,30 @@
 
 #include <Arduino.h>
 
-
 #include "ttpins.h"
 #include "ttsetup.h"
 #include "teetools.h"
 #include "cmdhandler.h"
+#include "motordriver.h"
+#include "ir.h"
 
+void event100ms() {
+	irProces();
+}
+void event250ms() {
+	h_usb_serial();	
+}
+void event1s() {
 
+}
+uint32_t msNow = 0;
 
 extern "C" int main(void) {
   // initialize the digital pin as an output.
 	ttSetup();
 
-	const int incomingUsbSerialInfoSize = 32;
-	char incomingUsbSerialInfo[incomingUsbSerialInfoSize];
-
-	uint32_t msNow = millis();
+	msNow = millis();
+	uint32_t fast100msPingTime = msNow;
 	uint32_t fast250msPingTime = msNow;
 	uint32_t oneSecondPingTime = msNow;
 	uint32_t secondsCounter = 0;
@@ -49,8 +57,6 @@ extern "C" int main(void) {
 			//usb_serial_write("md flt=%d\r\n", 9);
 			xmprintf(0, "md flt=%d\r\n", flt);
 		}
-
-
 		
 		//digitalWriteFast(13, HIGH);
 		//delay(1000);
@@ -59,40 +65,21 @@ extern "C" int main(void) {
 
 
 		analogWrite(ledPin, p);
-		//analogWrite(m1pwm, p);
-		//analogWrite(m2pwm, p); 	
+		mdProcess();
+
 		delay(10);
 
-				if (mainNow > (fast250msPingTime + 250)) {
-			fast250msPingTime = mainNow;
-			++fastCycleCounter;
-			//if (/*(tcpClientWasConnected == 0) || */(loggingSensors)) {
-			//	digitalWriteFast(ledPin, fastCycleCounter % 2);
-			//}
-			//Serial.printf("%d\n", mainNow);
-			int bs1;
-			while ((bs1 = usb_serial_available())) {
-				int bs2 = (bs1 <= incomingUsbSerialInfoSize) ? bs1 : incomingUsbSerialInfoSize;
-				int bs3 = usb_serial_read(incomingUsbSerialInfo, bs2);
-				if (bs3 > 0) {
-					//usb_serial_write(incomingUsbSerialInfo, bs3); //  this is for debugging and testing
-					onIncomingInfo(incomingUsbSerialInfo, bs3);
+		if (msNow > (fast100msPingTime + 100)) {
+			fast100msPingTime = msNow;
+			event100ms();
+			if (msNow > (fast250msPingTime + 250)) {
+				fast250msPingTime = msNow;
+				event250ms();
+				if (msNow > (oneSecondPingTime + 1000)) {
+					oneSecondPingTime = msNow;
+					++secondsCounter;
+					event1s();
 				}
-			}
-			
-			if (mainNow > (oneSecondPingTime + 1000)) {
-				//Serial.println("+1s");
-				oneSecondPingTime = mainNow;
-				++secondsCounter;
-
-
-
-		while ((int bs1 = usb_serial_available())) {
-			int bs2 = (bs1 <= incomingUsbSerialInfoSize) ? bs1 : incomingUsbSerialInfoSize;
-			int bs3 = usb_serial_read(incomingUsbSerialInfo, bs2);
-			if (bs3 > 0) {
-				//usb_serial_write(incomingUsbSerialInfo, bs3); //  this is for debugging and testing
-				onIncomingInfo(incomingUsbSerialInfo, bs3);
 			}
 		}
 	}

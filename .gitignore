@@ -2,4 +2,5 @@ build
 build1
 *.d 
 *.o
+.vscode
 

@@ -43,3 +43,8 @@ const int m2flt = 21;
 */
 const int m1slp = 22;
 const int m2slp = 23;
+
+/**   IR
+ * 
+ * */
+const int IR_RECV_PIN = 11;
