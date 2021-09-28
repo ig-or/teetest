@@ -44,6 +44,11 @@ const int m2flt = 21;
 const int m1slp = 22;
 const int m2slp = 23;
 
+const int m1encA = 38;
+const int m1encB = 39;
+const int m2encA = 40;
+const int m2encB = 41;
+
 /**   IR
  * 
  * */

@@ -39,6 +39,9 @@ extern "C" int main(void) {
 	unsigned int hsTime = 0;
 	const int hsPeriod = 4500;
 	xmprintf(0, "4.1 started\n");
+	#ifdef ENCODER_USE_INTERRUPTS
+	xmprintf(0, "using interrupts for encoders\n");
+	#endif
 	while (1) {
 		msNow = millis();
 		phase = (msNow % phaseLen);

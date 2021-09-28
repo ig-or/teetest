@@ -1,6 +1,10 @@
 
 #include <Arduino.h>
 
+#define ENCODER_USE_INTERRUPTS
+#define ENCODER_OPTIMIZE_INTERRUPTS
+#include <Encoder.h>
+
 #include "motordriver.h"
 #include "ttpins.h"
 
@@ -16,9 +20,11 @@ struct Motor {
 };
 
 struct MotorS {
+
     Motor mNew[2];
 	Motor mOld[2];
 };
+
 MotorS m;
 
 int pwmPin[2] = {m1pwm, m2pwm};
