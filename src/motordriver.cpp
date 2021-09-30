@@ -8,21 +8,28 @@
 #include "motordriver.h"
 #include "ttpins.h"
 
-struct Motor {
+struct MotorControlParams {
 	int speed;
 	int dir;
-	float fSpeed;
+};
+
+struct Motor {
+	MotorControlParams mcp;
+	float fSpeed; ///< moror target speed from -1.0 to 1.0
+	Encoder enc;
+	int pwmPin, dirPin, splPin, fltPin, csPin;
+	int encPin1, encPin2;
 	Motor() {
-		speed = 0;
-		dir = LOW;
+		mcp.speed = 0;
+		mcp.dir = LOW;
 		fSpeed = 0.0f;
 	}
+
 };
 
 struct MotorS {
-
-    Motor mNew[2];
-	Motor mOld[2];
+	MotorControlParams mcpOld[2];
+    Motor m[2];
 };
 
 MotorS m;

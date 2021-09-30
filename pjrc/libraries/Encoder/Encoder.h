@@ -76,7 +76,11 @@ typedef struct {
 class Encoder
 {
 public:
+	Encoder() {}
 	Encoder(uint8_t pin1, uint8_t pin2) {
+		eSetup(pin1, pin2);
+	}
+	void eSetup(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
