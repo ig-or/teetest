@@ -18,6 +18,7 @@ void event1s() {
 
 }
 uint32_t msNow = 0;
+uint32_t mksNow = 0;
 
 extern "C" int main(void) {
   // initialize the digital pin as an output.
@@ -44,6 +45,7 @@ extern "C" int main(void) {
 	#endif
 	while (1) {
 		msNow = millis();
+		mksNow = micros();
 		phase = (msNow % phaseLen);
 		if (phase < halfPhaseLen) {
 			p = phase * mpw / halfPhaseLen;
@@ -68,7 +70,7 @@ extern "C" int main(void) {
 
 
 		analogWrite(ledPin, p);
-		mdProcess();
+		mdProcess(mksNow);
 
 		delay(10);
 
