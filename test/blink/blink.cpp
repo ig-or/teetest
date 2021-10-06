@@ -8,6 +8,8 @@
 #include "motordriver.h"
 #include "ir.h"
 
+#include "EventResponder.h"
+
 void event100ms() {
 	irProces();
 }
@@ -17,8 +19,18 @@ void event250ms() {
 void event1s() {
 
 }
-uint32_t msNow = 0;
-uint32_t mksNow = 0;
+
+//volatile unsigned int msCounter = 0;
+void iTask200Hz(EventResponderRef r) {
+//	msCounter += 5;
+
+//	if ((msCounter % 1000) == 0) {
+//		int dt = msNow - msCounter;
+//		xmprintf(0, "msCounter = %u; msNow = %u; dt = %d \r\n", msCounter, msNow, dt);
+//	}
+
+}
+
 
 extern "C" int main(void) {
   // initialize the digital pin as an output.
@@ -43,9 +55,17 @@ extern "C" int main(void) {
 	#ifdef ENCODER_USE_INTERRUPTS
 	xmprintf(0, "using interrupts for encoders\n");
 	#endif
+
+	EventResponder er;
+	er.attachInterrupt(iTask200Hz);
+	MillisTimer mt;
+	mt.beginRepeating(5, er);
+	
 	while (1) {
+
 		msNow = millis();
 		mksNow = micros();
+
 		phase = (msNow % phaseLen);
 		if (phase < halfPhaseLen) {
 			p = phase * mpw / halfPhaseLen;
@@ -87,6 +107,7 @@ extern "C" int main(void) {
 				}
 			}
 		}
+		yield();	
 	}
 
 }

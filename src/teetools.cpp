@@ -4,6 +4,9 @@
 
 #include "teetools.h"
 
+uint32_t msNow = 0;
+uint32_t mksNow = 0;
+
 
 static uint32_t sprintCounter = 0;
 static const int sbSize = 512;

@@ -4,6 +4,9 @@
 #include "imxrt.h"
 #include "core_pins.h"
 
+extern uint32_t msNow;
+extern uint32_t mksNow;
+
 /*
 struct TTime {
 	uint32_t mks;

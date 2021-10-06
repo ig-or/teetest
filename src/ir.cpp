@@ -12,7 +12,6 @@
 #include "ir.h"
 #include "cmdhandler.h"
 
-extern uint32_t msNow; // time in milliseconds, 49 days rollover
 static  IRrecv irrecv(IR_RECV_PIN);
 static decode_results irResults;
 const int ciSize = 10;	///< how many buttons we know

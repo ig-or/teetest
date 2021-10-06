@@ -10,7 +10,7 @@
 #include "teetools.h"
 const int maxMotorPWM = maxPWM * 0.95;
 const unsigned int minControlPeriod = 250; //  mks
-const float accTime = 500000.0f; // time for acceleration from 0.0 to 1.0, in microseconds
+const float accTime = 1000000.0f; // time for acceleration from 0.0 to 1.0, in microseconds
 
 ///   values which controls the motor
 struct MotorControlParams {
@@ -89,8 +89,7 @@ struct Motor {
 			return; 
 		}
 
-		mcpPrev.mks = mks;
-
+		mcpPrev.mks = mks; //  update command time
 
 		float ds = mcp.fSpeed - mcpPrev.fSpeed;
 		if (ds < 0.0f) {
@@ -130,8 +129,6 @@ struct Motor {
 
 		pinMode(slpPin, OUTPUT);
 		digitalWriteFast(slpPin, HIGH);  
-
-		mcpPrev = msp;
 	}
 
 };
