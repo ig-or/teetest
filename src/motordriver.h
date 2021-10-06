@@ -1,6 +1,6 @@
 #pragma once
 
 int mdSetup();
-void setMSpeed(float m1Speed, float m2Speed, unsigned int mks);
+void setMSpeed(float m1Speed, float m2Speed);
 void getMSpeed(float& m1Speed, float& m2Speed);
 void mdProcess();

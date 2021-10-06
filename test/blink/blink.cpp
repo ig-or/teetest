@@ -8,7 +8,7 @@
 #include "motordriver.h"
 #include "ir.h"
 
-#include "EventResponder.h"
+//#include "EventResponder.h"
 
 void event100ms() {
 	irProces();
@@ -21,16 +21,7 @@ void event1s() {
 }
 
 //volatile unsigned int msCounter = 0;
-void iTask200Hz(EventResponderRef r) {
-//	msCounter += 5;
 
-//	if ((msCounter % 1000) == 0) {
-//		int dt = msNow - msCounter;
-//		xmprintf(0, "msCounter = %u; msNow = %u; dt = %d \r\n", msCounter, msNow, dt);
-//	}
-	mdProcess();
-
-}
 
 
 extern "C" int main(void) {
@@ -56,12 +47,12 @@ extern "C" int main(void) {
 	#ifdef ENCODER_USE_INTERRUPTS
 	xmprintf(0, "using interrupts for encoders\n");
 	#endif
-
+/*
 	EventResponder er;
 	er.attachInterrupt(iTask200Hz);
 	MillisTimer mt;
 	mt.beginRepeating(5, er);
-	
+*/	
 	while (1) {
 
 		msNow = millis();

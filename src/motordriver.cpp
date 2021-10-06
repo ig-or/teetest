@@ -4,25 +4,33 @@
 #define ENCODER_USE_INTERRUPTS
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
+#include "EventResponder.h"
 
 #include "motordriver.h"
 #include "ttpins.h"
 #include "teetools.h"
 const int maxMotorPWM = maxPWM * 0.95;
-const unsigned int minControlPeriod = 250; //  mks
+//const unsigned int minControlPeriod = 250; //  mks
 const float accTime = 1000000.0f; // time for acceleration from 0.0 to 1.0, in microseconds
+const int mdProcessRate = 2; // [ms]
+
+enum MMODE {
+	mSimple,
+	mLinear
+};
+static MMODE mmode = mSimple; // motor control mode
 
 ///   values which controls the motor
 struct MotorControlParams {
 	int speed;
 	int dir;
-	unsigned int mks;   //< time in microseconds
+	unsigned int ms;   //< time in milliseconds
 	float fSpeed;
-	MotorControlParams() : speed(0), dir(LOW), mks(0), fSpeed(0.0f) {}
+	MotorControlParams() : speed(0), dir(LOW), ms(0), fSpeed(0.0f) {}
 
 	/**  setup params based on floaring point control value
 	 * \param mSpeed "target" motor speed from -1 to 1
-	 * \param current time time in microseconds
+	 * \param current time time in milliseconds
 	 */
 	void mcUpdate(float mSpeed, unsigned int time) {
 		if (mSpeed != mSpeed) {
@@ -32,7 +40,7 @@ struct MotorControlParams {
 		if (mSpeed < -1.0f) 	{mSpeed = -1.0f; 	}
 		if (mSpeed > 1.0f) 		{mSpeed =  1.0f; 	}	
 		fSpeed = mSpeed;
-		mks = time;
+		ms = time;
 
 		if (mSpeed == 0.0f) {
 			//m.mNew[index].dir = LOW;
@@ -72,22 +80,20 @@ struct Motor {
 	void setEncPins(int p1, int p2) {
 		encPin1 = p1;   encPin2 = p2;
 	}
-	void mProcess(unsigned int mks) {
+	void mProcess(unsigned int ms) {
 		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
 			return;
 		}
-		if (mks == mcpPrev.mks) { // too soon
+		if (mcp.ms == mcpPrev.ms) { // too soon
 			return;
 		}
-		unsigned int dt; //   time diff in mks
-		if (mks > mcpPrev.mks) {
+		unsigned int dt; //   time diff in ms
+		if (mcp.ms > mcpPrev.ms) {
 			dt = mks - mcpPrev.mks;
 		} else { //  rollover ? 
 			dt = (0xffffffff - mcpPrev.mks) + mks;
 		}
-		if (dt < minControlPeriod) { //  too soon
-			return; 
-		}
+	
 
 		mcpPrev.mks = mks; //  update command time
 
@@ -137,13 +143,13 @@ struct Motor {
 static Motor m[2];
 
 
-void setMotorParams(int index, float mSpeed, unsigned int time) {
-	m[index].mcp.mcUpdate(mSpeed, time);
+void setMotorParams(int index, float mSpeed) {
+	m[index].mcp.mcUpdate(mSpeed);
 }
 
-void setMSpeed(float m1Speed, float m2Speed, unsigned int mks) {
-	m[0].mcp.mcUpdate(m1Speed, mks);
-	m[1].mcp.mcUpdate(m2Speed, mks);
+void setMSpeed(float m1Speed, float m2Speed) {
+	m[0].mcp.mcUpdate(m1Speed);
+	m[1].mcp.mcUpdate(m2Speed);
 }
 
 void getMSpeed(float& m1Speed, float& m2Speed) {
@@ -151,10 +157,9 @@ void getMSpeed(float& m1Speed, float& m2Speed) {
 	m2Speed = m[1].mcpPrev.fSpeed;
 }
 
-void mdProcess() {
-	unsigned int mks = micros();
-	m[0].mProcess(mks);
-	m[1].mProcess(mks);
+void mdProcess(EventResponderRef r) {
+	m[0].mProcess();
+	m[1].mProcess();
 }
 
 int mdSetup() {
@@ -167,5 +172,14 @@ int mdSetup() {
 	m[0].mSetup();
 	m[1].mSetup();
 
+	EventResponder er;
+	er.attachInterrupt(mdProcess);
+	MillisTimer mt;
+	mt.beginRepeating(mdProcessRate, er);
+
 	return 0;
 }
+
+
+
+
