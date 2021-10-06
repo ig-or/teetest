@@ -151,7 +151,8 @@ void getMSpeed(float& m1Speed, float& m2Speed) {
 	m2Speed = m[1].mcpPrev.fSpeed;
 }
 
-void mdProcess(unsigned int mks) {
+void mdProcess() {
+	unsigned int mks = micros();
 	m[0].mProcess(mks);
 	m[1].mProcess(mks);
 }

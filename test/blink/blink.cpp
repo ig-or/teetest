@@ -28,6 +28,7 @@ void iTask200Hz(EventResponderRef r) {
 //		int dt = msNow - msCounter;
 //		xmprintf(0, "msCounter = %u; msNow = %u; dt = %d \r\n", msCounter, msNow, dt);
 //	}
+	mdProcess();
 
 }
 
@@ -64,7 +65,7 @@ extern "C" int main(void) {
 	while (1) {
 
 		msNow = millis();
-		mksNow = micros();
+		//mksNow = micros();
 
 		phase = (msNow % phaseLen);
 		if (phase < halfPhaseLen) {
@@ -75,13 +76,13 @@ extern "C" int main(void) {
 		if ( p > mpw) {
 			  p = mpw;
 		}
-		if (msNow - hsTime > hsPeriod) {
-			hsTime = msNow;
-			uint8_t flt = digitalReadFast(m2flt);
-
+		//if (msNow - hsTime > hsPeriod) {
+		//	hsTime = msNow;
+		//	uint8_t flt = digitalReadFast(m2flt);
+//
 			//usb_serial_write("md flt=%d\r\n", 9);
-			xmprintf(0, "md flt=%d\r\n", flt);
-		}
+		//	xmprintf(0, "md flt=%d\r\n", flt);
+		//}
 		
 		//digitalWriteFast(13, HIGH);
 		//delay(1000);
@@ -90,7 +91,7 @@ extern "C" int main(void) {
 
 
 		analogWrite(ledPin, p);
-		mdProcess(mksNow);
+		//mdProcess();
 
 		delay(10);
 
