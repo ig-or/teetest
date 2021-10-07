@@ -5,7 +5,7 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
 #include "EventResponder.h"
-
+#include "core_cm7.h"
 #include "motordriver.h"
 #include "ttpins.h"
 #include "teetools.h"
@@ -22,10 +22,10 @@ static MMODE mmode = mSimple; // motor control mode
 
 ///   values which controls the motor
 struct MotorControlParams {
-	int speed;
-	int dir;
+	volatile int speed;
+	volatile int dir;
 	unsigned int ms;   //< time in milliseconds
-	float fSpeed;
+	volatile float fSpeed;
 	MotorControlParams() : speed(0), dir(LOW), ms(0), fSpeed(0.0f) {}
 
 	/**  setup params based on floaring point control value
@@ -39,33 +39,42 @@ struct MotorControlParams {
 		}
 		if (mSpeed < -1.0f) 	{mSpeed = -1.0f; 	}
 		if (mSpeed > 1.0f) 		{mSpeed =  1.0f; 	}	
-		fSpeed = mSpeed;
+		
 		ms = time;
+		int speedCopy;
+		int dirCopy;
 
 		if (mSpeed == 0.0f) {
-			//m.mNew[index].dir = LOW;
-			speed = 0;
+			dirCopy = dir;
+			speedCopy = 0;
 		} else if (mSpeed > 0.0f) {
-			dir = LOW;
-			speed = mSpeed * maxMotorPWM;
+			dirCopy = LOW;
+			speedCopy = mSpeed * maxMotorPWM;
 		} else { // < 0.0f
-			dir = HIGH;
-			speed = mSpeed * maxMotorPWM;
-			speed *= -1;
+			dirCopy = HIGH;
+			speedCopy = mSpeed * maxMotorPWM;
+			speedCopy *= -1;
 		}
 
-		if (speed > maxMotorPWM) {
-			speed = maxMotorPWM;
+		if (speedCopy > maxMotorPWM) {
+			speedCopy = maxMotorPWM;
 		}
-		if (speed < 0) {
-			speed = 0;
+		if (speedCopy < 0) {
+			speedCopy = 0;
 		}
+
+		bool irq = disableInterrupts(); // ?????????
+		fSpeed = mSpeed;
+		speed = speedCopy;
+		dir = dirCopy;
+		enableInterrupts(irq);
 	}
 };
 
 struct Motor {
 	MotorControlParams mcp;		///< new params
 	MotorControlParams mcpPrev; ///< previous params
+	MotorControlParams mcpPrevCopy; ///< previous params copy 
 	Encoder enc; 
 
 	/// the motor pins
@@ -82,46 +91,46 @@ struct Motor {
 	}
 	void mProcess(unsigned int ms) {
 		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
+			// we already set what was needed
 			return;
 		}
-		if (mcp.ms == mcpPrev.ms) { // too soon
-			return;
-		}
-		unsigned int dt; //   time diff in ms
-		if (mcp.ms > mcpPrev.ms) {
-			dt = mks - mcpPrev.mks;
-		} else { //  rollover ? 
-			dt = (0xffffffff - mcpPrev.mks) + mks;
-		}
-	
+		if (mmode == mSimple) {
+			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
+		} else if (mmode == mLinear) {
 
-		mcpPrev.mks = mks; //  update command time
+			//if (mcp.ms == mcpPrev.ms) { // too soon
+			//	return;
+			//}
+			unsigned int dt; //   time diff in ms
+			if (mcp.ms > mcpPrev.ms) {
+				dt = mks - mcpPrev.mks;
+			} else { //  rollover ? 
+				dt = (0xffffffff - mcpPrev.mks) + mks;
+			}
+		
 
-		float ds = mcp.fSpeed - mcpPrev.fSpeed;
-		if (ds < 0.0f) {
-			ds -= ds;
+			mcpPrev.mks = mks; //  update command time
+
+			float ds = mcp.fSpeed - mcpPrev.fSpeed;
+			if (ds < 0.0f) {
+				ds -= ds;
+			}
+
 		}
 
-
-/*
-
-		if (mcpPrev.speed != mcp.speed) {
-			mcpPrev.speed = mcp.speed;
-			analogWrite(pwmPin[i], m.mOld[i].speed);
-			m.mOld[i].fSpeed = m.mNew[i].fSpeed; // need this?
-		}
-		if (m.mOld[i].dir != m.mNew[i].dir) {
-			m.mOld[i].dir = m.mNew[i].dir;
-			digitalWriteFast(dirPin[i], m.mOld[i].dir);
-		}
-		*/
+		//now  mcpPrev have what we need
+		analogWrite(pwmPin, mcpPrev.speed);
+		digitalWriteFast(dirPin, mcpPrev.dir);
+		memcpy(&mcpPrevCopy, &mcpPrev, sizeof(mcpPrev));
 	}
 
 	//void setSpeed(float mSpeed) {
 	//	mcp.mcUpdate(mSpeed, time);
 	//}
 
-	///  call this after setting all the pins
+	/**  call this after setting all the pins.
+	 * 	one single motor setup.
+	 */
 	void mSetup() {
 		pinMode(csPin, INPUT);
 		pinMode(fltPin, INPUT_PULLUP);
@@ -130,7 +139,7 @@ struct Motor {
 		digitalWriteFast(dirPin, mcp.dir); 
 
 		pinMode(pwmPin, OUTPUT);
-		analogWriteFrequency(pwmPin, 10000.0f);
+		analogWriteFrequency(pwmPin, 20000.0f);
 		analogWrite(pwmPin, mcp.speed);
 
 		pinMode(slpPin, OUTPUT);
@@ -148,8 +157,9 @@ void setMotorParams(int index, float mSpeed) {
 }
 
 void setMSpeed(float m1Speed, float m2Speed) {
-	m[0].mcp.mcUpdate(m1Speed);
-	m[1].mcp.mcUpdate(m2Speed);
+	unsigned int ms = millis();
+	m[0].mcp.mcUpdate(m1Speed, ms);
+	m[1].mcp.mcUpdate(m2Speed, ms);
 }
 
 void getMSpeed(float& m1Speed, float& m2Speed) {
@@ -172,6 +182,7 @@ int mdSetup() {
 	m[0].mSetup();
 	m[1].mSetup();
 
+	// setup an interrupt for  'mdProcess'
 	EventResponder er;
 	er.attachInterrupt(mdProcess);
 	MillisTimer mt;
