@@ -54,17 +54,17 @@ int processTheCommand(const char* s, int size) {
 	if (strcmp(s, "inc speed") == 0) {
 		getMSpeed(ms1, ms2);
 		ms1 += 0.1; ms2 += 0.1;
-		setMSpeed(ms1, ms2, mksNow);
+		setMSpeed(ms1, ms2);
 		return 0;
 	}
 	if (strcmp(s, "dec speed") == 0) {
 		getMSpeed(ms1, ms2);
 		ms1 -= 0.1; ms2 -= 0.1;
-		setMSpeed(ms1, ms2, mksNow);
+		setMSpeed(ms1, ms2);
 		return 0;
 	}
 	if (strcmp(s, "stop") == 0) {
-		setMSpeed(0.0f, 0.0f, mksNow);
+		setMSpeed(0.0f, 0.0f);
 		return 0;
 	}
 

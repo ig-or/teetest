@@ -5,20 +5,21 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
 #include "EventResponder.h"
-#include "core_cm7.h"
+//#include "core_cm7.h"
 #include "motordriver.h"
 #include "ttpins.h"
 #include "teetools.h"
 const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
-const float accTime = 1000000.0f; // time for acceleration from 0.0 to 1.0, in microseconds
-const int mdProcessRate = 2; // [ms]
+constexpr float accTime = 3000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
+constexpr int mdProcessRate = 2; // [ms]
+constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
 enum MMODE {
 	mSimple,
 	mLinear
 };
-static MMODE mmode = mSimple; // motor control mode
+static MMODE mmode = mLinear; // motor control mode
 
 ///   values which controls the motor
 struct MotorControlParams {
@@ -64,9 +65,9 @@ struct MotorControlParams {
 		}
 
 		bool irq = disableInterrupts(); // ?????????
-		fSpeed = mSpeed;
 		speed = speedCopy;
 		dir = dirCopy;
+		fSpeed = mSpeed;
 		enableInterrupts(irq);
 	}
 };
@@ -74,7 +75,7 @@ struct MotorControlParams {
 struct Motor {
 	MotorControlParams mcp;		///< new params
 	MotorControlParams mcpPrev; ///< previous params
-	MotorControlParams mcpPrevCopy; ///< previous params copy 
+	//MotorControlParams mcpPrevCopy; ///< previous params copy 
 	Encoder enc; 
 
 	/// the motor pins
@@ -97,31 +98,30 @@ struct Motor {
 		if (mmode == mSimple) {
 			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
 		} else if (mmode == mLinear) {
-
-			//if (mcp.ms == mcpPrev.ms) { // too soon
-			//	return;
-			//}
-			unsigned int dt; //   time diff in ms
-			if (mcp.ms > mcpPrev.ms) {
-				dt = mks - mcpPrev.mks;
-			} else { //  rollover ? 
-				dt = (0xffffffff - mcpPrev.mks) + mks;
+			if (mcpPrev.fSpeed == mcp.fSpeed) {
+				memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
+			} else  { //   change fSpeed:
+				float x;
+				if (mcpPrev.fSpeed < mcp.fSpeed) { //  go up
+					x = mcpPrev.fSpeed + fStep;
+					if (x > mcp.fSpeed) {
+						x = mcp.fSpeed;
+					}
+				} else {  //  go down
+					x = mcpPrev.fSpeed - fStep;
+					if (x < mcp.fSpeed) {
+						x = mcp.fSpeed;
+					}		
+				}
+				mcpPrev.mcUpdate(x, ms);
 			}
-		
-
-			mcpPrev.mks = mks; //  update command time
-
-			float ds = mcp.fSpeed - mcpPrev.fSpeed;
-			if (ds < 0.0f) {
-				ds -= ds;
-			}
-
 		}
 
 		//now  mcpPrev have what we need
 		analogWrite(pwmPin, mcpPrev.speed);
 		digitalWriteFast(dirPin, mcpPrev.dir);
-		memcpy(&mcpPrevCopy, &mcpPrev, sizeof(mcpPrev));
+
+		//mcpPrevCopy = mcpPrev;
 	}
 
 	//void setSpeed(float mSpeed) {
@@ -152,9 +152,9 @@ struct Motor {
 static Motor m[2];
 
 
-void setMotorParams(int index, float mSpeed) {
-	m[index].mcp.mcUpdate(mSpeed);
-}
+//void setMotorParams(int index, float mSpeed) {
+//	m[index].mcp.mcUpdate(mSpeed);
+//}
 
 void setMSpeed(float m1Speed, float m2Speed) {
 	unsigned int ms = millis();
@@ -168,8 +168,9 @@ void getMSpeed(float& m1Speed, float& m2Speed) {
 }
 
 void mdProcess(EventResponderRef r) {
-	m[0].mProcess();
-	m[1].mProcess();
+	unsigned int ms = millis();
+	m[0].mProcess(ms);
+	m[1].mProcess(ms);
 }
 
 int mdSetup() {
