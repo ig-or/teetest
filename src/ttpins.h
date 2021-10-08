@@ -1,7 +1,6 @@
 #pragma once 
 
 const int ledPin = 13;
-const int maxPWM = 65535;  // because of the 16 bit resolution
 
 /*Motor speed inputs: A PWM (pulse-width modulation) signal 
 on these pins corresponds to a PWM output on the corresponding channel’s motor outputs. 

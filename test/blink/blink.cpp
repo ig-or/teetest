@@ -43,10 +43,8 @@ extern "C" int main(void) {
 	int halfPhaseLen = phaseLen / 2;
 	unsigned int hsTime = 0;
 	const int hsPeriod = 4500;
-	xmprintf(0, "4.1 started\n");
-	#ifdef ENCODER_USE_INTERRUPTS
-	xmprintf(0, "using interrupts for encoders\n");
-	#endif
+	xmprintf(0, "4.1 started\r\n");
+
 /*
 	EventResponder er;
 	er.attachInterrupt(iTask200Hz);

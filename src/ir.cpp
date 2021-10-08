@@ -51,7 +51,7 @@ void irProces() {
 		int cIndex = -1;
     	//Serial.println(results.value, HEX);
 		unsigned long code = irResults.value;
-		xmprintf(0, "IR: %x\n", code);
+		//xmprintf(0, "IR: %x\r\n", code);
     	irrecv.resume(); // Receive the next value
 
 		switch (code) {
@@ -60,6 +60,8 @@ void irProces() {
 			case VOLp: 	cIndex = 2; break;
 			case SETUP: cIndex = 3; break;
 			case STOP: 	cIndex = 5; break;
+			case LEFT: 	cIndex = 6; break;
+			case RIGHT:  cIndex = 8; break;
 			default: break;
 		}
 		if (cIndex < 0) { // wrong code

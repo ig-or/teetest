@@ -46,7 +46,8 @@ void onIncomingInfo(char* s, int size) {
 }
 
 int processTheCommand(const char* s, int size) {
-    xmprintf(0, "got cmd size=%d (%s)", size, s);
+    //xmprintf(0, "got cmd size=%d (%s)", size, s);
+	xmprintf(0, "(%s)\r\n", s);
 	if (size == 0) {
 		size = strlen(s);
 	}
@@ -65,6 +66,24 @@ int processTheCommand(const char* s, int size) {
 	}
 	if (strcmp(s, "stop") == 0) {
 		setMSpeed(0.0f, 0.0f);
+		return 0;
+	}
+	if (strcmp(s, "left") == 0) {
+		getMSpeed(ms1, ms2);
+		ms1 += 0.05; ms2 -= 0.05;
+		setMSpeed(ms1, ms2);
+		return 0;
+	}
+	if (strcmp(s, "right") == 0) {
+		getMSpeed(ms1, ms2);
+		ms1 -= 0.05; ms2 += 0.05;
+		setMSpeed(ms1, ms2);
+		return 0;
+	}
+
+
+	if (strcmp(s, "setup") == 0) {
+		mdPrint();
 		return 0;
 	}
 
