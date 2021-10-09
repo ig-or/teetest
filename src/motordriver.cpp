@@ -88,6 +88,7 @@ struct Motor {
 	MotorControlParams mcpPrev; ///< previous params
 	//MotorControlParams mcpPrevCopy; ///< previous params copy 
 	Encoder enc; 
+	long encPos;
 
 	/// the motor pins
 	int pwmPin, dirPin, slpPin, fltPin, csPin;
@@ -108,6 +109,7 @@ struct Motor {
 		processCounter = 0; bigCurrentCounter = 0;
 		current = 0;  currentOffset = 0; fCurrent = 0.0f; maxFCurrent = 0.0f;
 	//	invDir = false;
+		encPos = 0;
 	}
 	void setPins(int pwm, int dir, int slp, int flt, int cs) {
 		pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
@@ -116,38 +118,15 @@ struct Motor {
 		encPin1 = p1;   encPin2 = p2;
 	}
 	void print() {
-		xmprintf(0, "motor %d \tspeed=%.2f/%.2f (%u/%u); fCurrent=%.1f mA, maxFCurrent=%.1f mA   pc=%u, %d\r\n", 
+		xmprintf(0, "motor %d \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d]\r\n", 
 			id,  
-			mcpPrev.fSpeed, mcp.fSpeed,  mcpPrev.speed, mcp.speed, 
+			mcpPrev.fSpeed, mcp.fSpeed, 
+			encPos,
 			fCurrent, maxFCurrent,
-			processCounter, processCounter - millis());
+			processCounter - millis());
 	}
 
-	void mProcess(unsigned int ms) {
-		++processCounter;
-		current = analogRead(csPin);
-
-		switch (mState) {
-		case msCalibrate:
-			currentOffset += current;
-			if (processCounter >= calibrationTime) {
-				currentOffset /= processCounter;
-				//xmprintf(0, "motor %d currentOffset %d (%.2f mv)\r\n", id, 
-				//	currentOffset, currentOffset*a2mv);
-				mState = msWork;
-			}
-		break;
-		default: break;
-		};
-
-
-		if ((processCounter % mdProcessRate) != 0) {
-			return;
-		}
-		if (mState != msWork) {
-			return;
-		}
-
+	void processOutput(unsigned int ms) {
 		fCurrent = (current - currentOffset) * a2ma; 
 		if (fCurrent > maxFCurrent) {
 			maxFCurrent = fCurrent;
@@ -194,6 +173,36 @@ struct Motor {
 			}
 		}
 		digitalWriteFast(dirPin, d);
+	}
+
+	void mProcess(unsigned int ms) {
+		++processCounter;
+		current = analogRead(csPin);
+
+		switch (mState) {
+		case msCalibrate:
+			currentOffset += current;
+			if (processCounter >= calibrationTime) {
+				currentOffset /= processCounter;
+				//xmprintf(0, "motor %d currentOffset %d (%.2f mv)\r\n", id, 
+				//	currentOffset, currentOffset*a2mv);
+				mState = msWork;
+			}
+		break;
+		default: break;
+		};
+
+		
+		if (((processCounter % mdProcessRate) == 0) && (mState == msWork)) {
+			processOutput(ms);
+			if ((processCounter % (mdProcessRate << 1)) == 0) {   //  encoder
+				  long newPosition = enc.read();
+				  if (encPos != newPosition) {
+					  encPos = newPosition;
+				  }
+			}
+		}
+
 
 		//mcpPrevCopy = mcpPrev;
 	}
@@ -218,11 +227,14 @@ struct Motor {
 		digitalWriteFast(dirPin, mcp.dir); 
 
 		pinMode(pwmPin, OUTPUT);
-		analogWriteFrequency(pwmPin, 20000.0f);
+		//analogWriteFrequency(pwmPin, 20000.0f);
+		analogWriteFrequency(pwmPin, 18310.55f);
 		analogWrite(pwmPin, mcp.speed);
 
 		pinMode(slpPin, OUTPUT);
 		digitalWriteFast(slpPin, HIGH);  
+
+		enc.eSetup(encPin1, encPin2);
 	}
 
 };

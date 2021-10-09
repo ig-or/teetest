@@ -112,33 +112,37 @@ public:
 
 
 #ifdef ENCODER_USE_INTERRUPTS
+
 	inline int32_t read() {
+		bool irq;
 		if (interrupts_in_use < 2) {
-			noInterrupts();
+			irq = disableInterrupts();
 			update(&encoder);
 		} else {
-			noInterrupts();
+			irq = disableInterrupts();
 		}
 		int32_t ret = encoder.position;
-		interrupts();
+		enableInterrupts(irq);
 		return ret;
 	}
 	inline int32_t readAndReset() {
+		bool irq;
 		if (interrupts_in_use < 2) {
-			noInterrupts();
+			irq = disableInterrupts();
 			update(&encoder);
 		} else {
-			noInterrupts();
+			irq = disableInterrupts();
 		}
 		int32_t ret = encoder.position;
 		encoder.position = 0;
-		interrupts();
+		enableInterrupts(irq);
 		return ret;
 	}
 	inline void write(int32_t p) {
-		noInterrupts();
+		bool irq;
+		irq = disableInterrupts();
 		encoder.position = p;
-		interrupts();
+		enableInterrupts(irq);
 	}
 #else
 	inline int32_t read() {

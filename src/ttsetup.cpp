@@ -7,9 +7,10 @@
 
 int ttSetup() {
 	pinMode(ledPin, OUTPUT);
-	analogWriteResolution(16);
-    analogReadResolution(16);
 
+	//   from https://www.pjrc.com/teensy/td_pulse.html, see the bottom of the page
+	analogWriteResolution(13);
+    analogReadResolution(13);
 
 
     mdSetup();

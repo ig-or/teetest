@@ -177,10 +177,20 @@ extern long double pow10l(long double x);
 
 #define stricmp(a, b) strcasecmp(a, b)
 
-#define sei() __enable_irq()
-#define cli() __disable_irq()
-#define interrupts() __enable_irq()
-#define noInterrupts() __disable_irq()
+//#define sei() __enable_irq()
+//#define cli() __disable_irq()
+//#define interrupts() __enable_irq()
+//#define noInterrupts() __disable_irq()
+
+inline bool disableInterrupts() {
+	uint32_t primask;
+	__asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
+	__disable_irq();
+	return (primask == 0) ? true : false;
+}
+inline void enableInterrupts(bool doit) {
+	if (doit) __enable_irq();
+}
 
 #define clockCyclesPerMicrosecond() ( F_CPU_ACTUAL / 1000000L )
 #define clockCyclesToMicroseconds(a) ( (a) / clockCyclesPerMicrosecond() )

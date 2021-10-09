@@ -137,7 +137,7 @@ void  IRrecv::enableIRIn ( )
 	timerAlarmWrite(timer, 50, true);
 	timerAlarmEnable(timer);
 #else
-	cli();
+	bool irq = disableInterrupts();
 	// Setup pulse clock timer interrupt
 	// Prescale /8 (16M/8 = 0.5 microseconds per tick)
 	// Therefore, the timer interval can range from 0.5 to 128 microseconds
@@ -149,7 +149,7 @@ void  IRrecv::enableIRIn ( )
 
 	TIMER_RESET;
 
-	sei();  // enable interrupts
+	enableInterrupts(irq);
 #endif
 
 	// Initialize state machine variables
