@@ -96,6 +96,7 @@ struct Motor {
 	int encPin1, encPin2;
 	int current, currentOffset;
 	float fCurrent, maxFCurrent; // milliamps
+	int bigCurrentFlag;
 	int id;  ///< motor ID
 	bool invDir; ///< invert direction of the rotation
 	unsigned int processCounter;
@@ -110,6 +111,7 @@ struct Motor {
 		current = 0;  currentOffset = 0; fCurrent = 0.0f; maxFCurrent = 0.0f;
 	//	invDir = false;
 		encPos = 0;
+		bigCurrentFlag = 0;
 	}
 	void setPins(int pwm, int dir, int slp, int flt, int cs) {
 		pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
@@ -131,18 +133,24 @@ struct Motor {
 		if (fCurrent > maxFCurrent) {
 			maxFCurrent = fCurrent;
 		}
-		//if (fCurrent > 4000) {
-		//	mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
-		//	++bigCurrentCounter;
-		//}
+		if (fCurrent > 4000) {
+			bigCurrentFlag = 1;
+			mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
+			++bigCurrentCounter;
+		} else {
+			bigCurrentFlag = 0;
+		}
 
 		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
 			// we already set what was needed
 			return;
 		}
-		if (mmode == mSimple) {
+		
+		switch (mmode) {
+		case mSimple:
 			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
-		} else if (mmode == mLinear) {
+			break;
+		case mLinear:
 			if (mcpPrev.fSpeed == mcp.fSpeed) {
 				memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
 			} else  { //   change fSpeed:
@@ -160,17 +168,14 @@ struct Motor {
 				}
 				mcpPrev.mcUpdate(x, ms, false);
 			}
-		}
+			break;
+		};
 
 		//now  mcpPrev have what we need
 		analogWrite(pwmPin, mcpPrev.speed);
 		int d = mcpPrev.dir;
 		if (invDir) {
-			if (d == LOW) {
-				d = HIGH;
-			} else {
-				d = LOW;
-			}
+			d = (d == LOW) ? HIGH : LOW;
 		}
 		digitalWriteFast(dirPin, d);
 	}
