@@ -1,0 +1,3 @@
+[submodule "xqtools"]
+	path = xqtools
+	url = git@bitbucket.org:shrimp/xqtools.git

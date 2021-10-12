@@ -88,7 +88,7 @@ struct Motor {
 	MotorControlParams mcpPrev; ///< previous params
 	//MotorControlParams mcpPrevCopy; ///< previous params copy 
 	Encoder enc; 
-	long encPos;
+	volatile long encPos;
 
 	/// the motor pins
 	int pwmPin, dirPin, slpPin, fltPin, csPin;
@@ -96,11 +96,11 @@ struct Motor {
 	int encPin1, encPin2;
 	int current, currentOffset;
 	float fCurrent, maxFCurrent; // milliamps
-	int bigCurrentFlag;
+	volatile int bigCurrentFlag;
 	int id;  ///< motor ID
 	bool invDir; ///< invert direction of the rotation
 	unsigned int processCounter;
-	unsigned int bigCurrentCounter;
+	volatile unsigned int bigCurrentCounter;
 	static const int calibrationTime = 20; // ms
 	Motor() {
 	

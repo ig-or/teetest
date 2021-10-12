@@ -7,13 +7,17 @@ set(PROJECT_NAME teetest)
 
 PROJECT(${PROJECT_NAME})
 
+
 set(PROJ_SRC_FILES  SL_${PROJECT_NAME})
 set(CMAKE_COLOR_MAKEFILE TRUE)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(cdir "${CMAKE_SOURCE_DIR}")
-INCLUDE("${CMAKE_SOURCE_DIR}/cmake/options.cmake")
-INCLUDE("${CMAKE_SOURCE_DIR}/cmake/ccmake.cmake")
+set(xqt "${cdir}/xqtools")
+INCLUDE("${cdir}/cmake/options.cmake")
+include("${xqt}/buildsys/ccmake.cmake")
+
+#INCLUDE("${CMAKE_SOURCE_DIR}/cmake/ccmake.cmake")
 
 #if (tbProto)
 ENABLE_LANGUAGE(ASM  C CXX)
@@ -62,15 +66,16 @@ set (foldersList
 
 FOREACH(i ${foldersList})
 	#message(STATUS ${i})
-	addSourceFiles(${i} ${i})
+	addSourceFiles0(${i} ${i})
 ENDFOREACH()
 
 # add some of the matrix and 'common' files:
 #addSourceFiles(matrix "xqtools/matrix/src" 
 #	eigsolver optimizer xmatrix_imp xmatrix2 xmfilter xmgsl)
 	
-#addSourceFiles(core "xqtools/core/src"
-# rbuf  xmroundbuf xmutils xstdef xmatrixplatform)
+addSourceFiles(core "${xqt}/core/src"
+ rbuf  xmroundbuf xmutils xstdef xmatrixplatform
+)
  
 #addSourceFiles(msg "xqtools/message/src"
 #  xmessage xmessagesend)
@@ -80,7 +85,7 @@ set(libFoldersList)
 SUBDIRLIST(libFoldersList ${cdir}/libraries) # 
 FOREACH(i ${libFoldersList})
 	message(STATUS "adding library folder ${i}")
-	addSourceFiles(library ${i})
+	addSourceFiles0(library ${i})
 ENDFOREACH()
 
 #message(STATUS "ourGroupNames = " ${ourGroupNames}) 
@@ -97,6 +102,8 @@ endforeach()
 foreach(dir  ${INC_DIR_LIST})
 	message(STATUS "  -I    ${dir}")
 endforeach()
+
+
 
 #message(STATUS "PROJ_SRC_FILES = ${${PROJ_SRC_FILES}}")
 

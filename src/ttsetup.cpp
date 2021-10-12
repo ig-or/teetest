@@ -4,6 +4,7 @@
 #include "ttsetup.h"
 #include "motordriver.h"
 #include "ir.h"
+#include "teetools.h"
 
 int ttSetup() {
 	pinMode(ledPin, OUTPUT);
@@ -15,6 +16,10 @@ int ttSetup() {
 
     mdSetup();
 	irSetup();
+
+	pinMode(led1_pin, OUTPUT);
+	//analogWrite(led1_pin, maxPWM);
+	//digitalWriteFast(led1_pin, HIGH);
 
 	
 	return 0;
