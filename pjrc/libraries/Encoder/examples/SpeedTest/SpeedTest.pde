@@ -103,11 +103,11 @@ void loop() {
 
   while (1) {
     myEnc.read();	// Read the encoder while interrupts are enabled.
-    noInterrupts();
+    bool irq = disableInterrupts();
     *reg |= mask;	// Pulse the pin high, while interrupts are disabled.
     count = count + 1;
     *reg &= ~mask;
-    interrupts();
+    enableInterrupts(irq);
   }
 }
 

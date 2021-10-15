@@ -74,7 +74,7 @@ ENDFOREACH()
 #	eigsolver optimizer xmatrix_imp xmatrix2 xmfilter xmgsl)
 	
 addSourceFiles(core "${xqt}/core/src"
- rbuf  xmroundbuf xmutils xstdef xmatrixplatform
+  xmroundbuf xmutils xstdef xmatrixplatform
 )
  
 #addSourceFiles(msg "xqtools/message/src"
