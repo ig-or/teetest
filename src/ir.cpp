@@ -3,7 +3,7 @@
  */
 
 #include <Arduino.h>
-
+#include <Audio.h>
 #include <IRremote.h>
 
 #include "cmdhandler.h"
@@ -17,6 +17,15 @@ static decode_results irResults;
 const int ciSize = 10;	///< how many buttons we know
 const int cInterval_ms = 250; ///< minimum time between the commans
 uint32_t ciTime[ciSize]; ///< command times in milliseconds
+
+
+
+// GUItool: begin automatically generated code
+AudioSynthWaveformSine   sine1;          //xy=487,265
+AudioOutputAnalog        dac1;           //xy=675,262
+AudioConnection          patchCord1(sine1, dac1);
+// GUItool: end automatically generated code
+
 
 ///  the commands
 const char* cmds[ciSize] = {"dec speed", 	"play", 	"inc speed", 	"setup", 	"up", 

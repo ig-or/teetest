@@ -104,7 +104,7 @@ void SPIClass::usingInterrupt(uint8_t interruptNumber)
 	if (interruptMode > 1) return;
 
 	stmp = SREG;
-	noInterrupts();
+	bool irq = disableInterrupts();
 	switch (interruptNumber) {
 	#ifdef SPI_INT0_MASK
 	case 0: mask = SPI_INT0_MASK; break;
