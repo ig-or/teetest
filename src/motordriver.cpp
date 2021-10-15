@@ -9,15 +9,27 @@
 #include "motordriver.h"
 #include "ttpins.h"
 #include "teetools.h"
+
+//#include "rbuf.h"
+#include "xmatrixplatform.h"
+#include "xmroundbuf.h"
+#include "xmatrix2.h"
 const int maxMotorPWM = maxPWM * 0.95;
+
+
 //const unsigned int minControlPeriod = 250; //  mks
 constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
 constexpr int mdProcessRate = 2; // [ms]
+constexpr int encReadRate = mdProcessRate << 1; // [ms]
+const int encNumber = 1920; ///< impulses per revolution
+constexpr float encTicks2Radians = TWO * pii / float(encNumber);
+constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< speed = dFi * encSpeed1
+
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
 enum MMODE {
-	mSimple,
-	mLinear
+	mSimple, // just use what we have in 'mcp'
+	mLinear  // 
 };
 static MMODE mmode = mLinear; // motor control mode
 
@@ -89,6 +101,14 @@ struct Motor {
 	//MotorControlParams mcpPrevCopy; ///< previous params copy 
 	Encoder enc; 
 	volatile long encPos;
+	static const int encBufSize = 8;
+	//XMRoundBuf<int, encBufSize> encBuf;
+	NativeRoundBuf<int, encBufSize> encBuf;
+	float encTimeBuf[encBufSize]; ///< encoder time in seconds, starting from zero
+	float encDataBuf[encBufSize]; ///< encoder data in radians, starting from zero
+	float abc[3]; ///< for parabola coeffs
+
+	volatile float encSpeed; ///< speed in radians/second
 
 	/// the motor pins
 	int pwmPin, dirPin, slpPin, fltPin, csPin;
@@ -105,13 +125,23 @@ struct Motor {
 	Motor() {
 	
 	}
-	void mInit() {
+	void mSoftReset() {
 		mState = msCalibrate;
 		processCounter = 0; bigCurrentCounter = 0;
 		current = 0;  currentOffset = 0; fCurrent = 0.0f; maxFCurrent = 0.0f;
 	//	invDir = false;
 		encPos = 0;
 		bigCurrentFlag = 0;
+
+		encBuf.clear();
+		encSpeed = 0.0f;
+
+		memset(encTimeBuf, 0, sizeof(float)*encBufSize);
+		for (int i = 0; i < encBufSize; i++) {
+			encTimeBuf[i] = i * encReadRate * 0.001; 
+		}
+
+		memset(encDataBuf, 0, sizeof(float)*encBufSize);
 	}
 	void setPins(int pwm, int dir, int slp, int flt, int cs) {
 		pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
@@ -127,6 +157,25 @@ struct Motor {
 			fCurrent, maxFCurrent,
 			processCounter - millis());
 	}
+
+	void updateEncSpeed() {
+		switch (encBuf.num) {
+			case 0: encSpeed = 0.0f; break;
+			case 1: encSpeed = (encBuf.x[0]) * encSpeed1;  break;
+			case 2: encSpeed = (encBuf.x[1] - encBuf.x[0]) * encSpeed1;  break;
+			case 3: encSpeed = (encBuf.x[2] - encBuf.x[1]) * encSpeed1;  break;
+			default: {  //   FIXME: handle rollover here; what is rollover policy on encoder side?
+				// calculate relative rotation angles ( between encBufSize counts ago and all the others)
+				for (int i = 0; i < encBuf.num; i++) { // FIXME: start counting from 1
+					encDataBuf[i] = (encBuf.x[i] - encBuf.x[0]) * encTicks2Radians;
+				}
+				parabola_appr(encTimeBuf, encDataBuf, encBuf.num, abc); // calculate 'abc'
+				// current time is    encTimeBuf[encBuf.num - 1]
+				encSpeed= 2.0f*abc[0]*encTimeBuf[encBuf.num - 1] + abc[1];
+			}
+		}
+	}
+
 
 	void processOutput(unsigned int ms) {
 		fCurrent = (current - currentOffset) * a2ma; 
@@ -181,7 +230,7 @@ struct Motor {
 	}
 
 	void mProcess(unsigned int ms) {
-		++processCounter;
+		++processCounter;// supposed to be a  milliseconds counter
 		current = analogRead(csPin);
 
 		switch (mState) {
@@ -200,13 +249,16 @@ struct Motor {
 		
 		if (((processCounter % mdProcessRate) == 0) && (mState == msWork)) {
 			processOutput(ms);
-			if ((processCounter % (mdProcessRate << 1)) == 0) {   //  encoder
-				  long newPosition = enc.read();
-				  if (encPos != newPosition) {
-					  encPos = newPosition;
-				  }
-			}
 		}
+		if ((processCounter % encReadRate) == 0) {   //  encoder
+			int newPosition = enc.read();
+			if (encPos != newPosition) {
+				encPos = newPosition;
+			}
+			encBuf.rAdd(newPosition);
+			updateEncSpeed();
+		}
+
 
 
 		//mcpPrevCopy = mcpPrev;
@@ -221,7 +273,7 @@ struct Motor {
 	 * 	one single motor setup.
 	 */
 	void mSetup(int id_) {
-		mInit();
+		mSoftReset();
 		id = id_;
 		invDir = ((id % 2) == 0);
 		

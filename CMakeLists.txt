@@ -49,7 +49,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release")
 
 add_definitions(-DOURPROJECTNAME=${PROJECT_NAME}) # -DENCODER_USE_INTERRUPTS -DENCODER_OPTIMIZE_INTERRUPTS)
 #add_definitions(-DNOMINMAX)
-#add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS)
+add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS)
 
 set(ourGroupNames)
 SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
@@ -70,8 +70,9 @@ FOREACH(i ${foldersList})
 ENDFOREACH()
 
 # add some of the matrix and 'common' files:
-#addSourceFiles(matrix "xqtools/matrix/src" 
-#	eigsolver optimizer xmatrix_imp xmatrix2 xmfilter xmgsl)
+addSourceFiles(matrix "${xqt}/matrix/src" 
+	xmatrix_imp xmatrix2 xmfilter xmgsl
+)
 	
 addSourceFiles(core "${xqt}/core/src"
  rbuf  xmroundbuf xmutils xstdef xmatrixplatform
