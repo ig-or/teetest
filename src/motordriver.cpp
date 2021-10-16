@@ -1,300 +1,305 @@
 
-#include <Arduino.h>
+#ifndef PCTEST
+	#include <Arduino.h>
 
-#define ENCODER_USE_INTERRUPTS
-#define ENCODER_OPTIMIZE_INTERRUPTS
-#include <Encoder.h>
-#include "EventResponder.h"
+	#define ENCODER_USE_INTERRUPTS
+	#define ENCODER_OPTIMIZE_INTERRUPTS
+	#include <Encoder.h>
+	#include "EventResponder.h"
+	
+#endif
+#include "teetools.h"
 //#include "core_cm7.h"
 #include "motordriver.h"
 #include "ttpins.h"
-#include "teetools.h"
+
 
 //#include "rbuf.h"
 #include "xmatrixplatform.h"
 #include "xmroundbuf.h"
 #include "xmatrix2.h"
+
+#ifdef PCTEST
+
+const int LOW = 0;
+const int HIGH = 1;
+int xmprintf(int dst, const char* s, ...);
+bool disableInterrupts() { return true; }
+void enableInterrupts(bool irq) {}
+unsigned int millis() {
+	return 0;
+}
+void analogWrite(int pin, int pwm) { }
+void digitalWriteFast(int pin, int val) {}
+int analogRead(int pin) {return 0;}
+#endif
+
 const int maxMotorPWM = maxPWM * 0.95;
-
-
 //const unsigned int minControlPeriod = 250; //  mks
 constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
 constexpr int mdProcessRate = 2; // [ms]
-constexpr int encReadRate = mdProcessRate << 1; // [ms]
+constexpr int encReadRate = 20; // [ms]
+constexpr float fEncReadRate = float(encReadRate) * 0.001f;
 const int encNumber = 1920; ///< impulses per revolution
 constexpr float encTicks2Radians = TWO * pii / float(encNumber);
 constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< speed = dFi * encSpeed1
 
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
-enum MMODE {
-	mSimple, // just use what we have in 'mcp'
-	mLinear  // 
-};
 static MMODE mmode = mLinear; // motor control mode
 
-///   values which controls the motor
-struct MotorControlParams {
-	volatile int speed;
-	volatile int dir;
-	unsigned int ms;   //< time in milliseconds
-	volatile float fSpeed;
-	MotorControlParams() : speed(0), dir(LOW), ms(0), fSpeed(0.0f) {}
 
-	/**  setup params based on floaring point control value
-	 * \param mSpeed "target" motor speed from -1 to 1
-	 * \param current time time in milliseconds
-	 * \param di true if need to disable interrupts; set it to true when using from lower priority functions
-	 */
-	void mcUpdate(float mSpeed, unsigned int time, bool di = false) {
-		if (mSpeed != mSpeed) {
-			xmprintf(0, "mcUpdate bad speed\r\n");
-			return;
-		}
-		if (mSpeed < -1.0f) 	{mSpeed = -1.0f; 	}
-		if (mSpeed > 1.0f) 		{mSpeed =  1.0f; 	}	
-		
-		ms = time;
-		int speedCopy;
-		int dirCopy;
+MotorControlParams::MotorControlParams() : speed(0), dir(LOW), ms(0), fSpeed(0.0f) {}
 
-		if (mSpeed == 0.0f) {
-			dirCopy = dir;
-			speedCopy = 0;
-		} else if (mSpeed > 0.0f) {
-			dirCopy = LOW;
-			speedCopy = mSpeed * maxMotorPWM;
-		} else { // < 0.0f
-			dirCopy = HIGH;
-			speedCopy = mSpeed * maxMotorPWM;
-			speedCopy *= -1;
-		}
-
-		if (speedCopy > maxMotorPWM) {
-			speedCopy = maxMotorPWM;
-		}
-		if (speedCopy < 0) {
-			speedCopy = 0;
-		}
-
-		bool irq;
-		if (di) {
-			irq = disableInterrupts(); // ?????????
-		}
-		speed = speedCopy;
-		dir = dirCopy;
-		fSpeed = mSpeed;
-		if (di) {
-			enableInterrupts(irq);
-		}
+/**  setup params based on floaring point control value
+ * \param mSpeed "target" motor speed from -1 to 1
+ * \param current time time in milliseconds
+ * \param di true if need to disable interrupts; set it to true when using from lower priority functions
+ */
+void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
+	if (mSpeed != mSpeed) {
+		xmprintf(0, "mcUpdate bad speed\r\n");
+		return;
 	}
-};
-
-struct Motor {
-	enum MState {
-		msCalibrate,
-		msWork
-	};
-	MState mState;
-	MotorControlParams mcp;		///< new params
-	MotorControlParams mcpPrev; ///< previous params
-	//MotorControlParams mcpPrevCopy; ///< previous params copy 
-	Encoder enc; 
-	volatile long encPos;
-	static const int encBufSize = 8;
-	//XMRoundBuf<int, encBufSize> encBuf;
-	NativeRoundBuf<int, encBufSize> encBuf;
-	float encTimeBuf[encBufSize]; ///< encoder time in seconds, starting from zero
-	float encDataBuf[encBufSize]; ///< encoder data in radians, starting from zero
-	float abc[3]; ///< for parabola coeffs
-
-	volatile float encSpeed; ///< speed in radians/second
-
-	/// the motor pins
-	int pwmPin, dirPin, slpPin, fltPin, csPin;
-	///  encoder pins:
-	int encPin1, encPin2;
-	int current, currentOffset;
-	float fCurrent, maxFCurrent; // milliamps
-	volatile int bigCurrentFlag;
-	int id;  ///< motor ID
-	bool invDir; ///< invert direction of the rotation
-	unsigned int processCounter;
-	volatile unsigned int bigCurrentCounter;
-	static const int calibrationTime = 20; // ms
-	Motor() {
+	if (mSpeed < -1.0f) 	{mSpeed = -1.0f; 	}
+	if (mSpeed > 1.0f) 		{mSpeed =  1.0f; 	}	
 	
+	ms = time;
+	int speedCopy;
+	int dirCopy;
+
+	if (mSpeed == 0.0f) {
+		dirCopy = dir;
+		speedCopy = 0;
+	} else if (mSpeed > 0.0f) {
+		dirCopy = LOW;
+		speedCopy = mSpeed * maxMotorPWM;
+	} else { // < 0.0f
+		dirCopy = HIGH;
+		speedCopy = mSpeed * maxMotorPWM;
+		speedCopy *= -1;
 	}
-	void mSoftReset() {
-		mState = msCalibrate;
-		processCounter = 0; bigCurrentCounter = 0;
-		current = 0;  currentOffset = 0; fCurrent = 0.0f; maxFCurrent = 0.0f;
-	//	invDir = false;
-		encPos = 0;
+
+	if (speedCopy > maxMotorPWM) {
+		speedCopy = maxMotorPWM;
+	}
+	if (speedCopy < 0) {
+		speedCopy = 0;
+	}
+
+	bool irq;
+	if (di) {
+		irq = disableInterrupts(); // ?????????
+	}
+	speed = speedCopy;
+	dir = dirCopy;
+	fSpeed = mSpeed;
+	if (di) {
+		enableInterrupts(irq);
+	}
+}
+
+
+Motor::Motor() {
+
+}
+void Motor::mSoftReset() {
+	mState = msCalibrate;
+	processCounter = 0; bigCurrentCounter = 0;
+	current = 0;  currentOffset = 0; fCurrent = 0.0f; maxFCurrent = 0.0f;
+//	invDir = false;
+	encPos = 0;
+	bigCurrentFlag = 0;
+
+	encBuf.clear();
+	encSpeed = 0.0f;
+
+	memset(encTimeBuf, 0, sizeof(float)*encBufSize);
+	for (int i = 0; i < encBufSize; i++) {
+		encTimeBuf[i] = i * encReadRate * 0.001; 
+	}
+
+	memset(encDataBuf, 0, sizeof(float)*encBufSize);
+}
+void Motor::setPins(int pwm, int dir, int slp, int flt, int cs) {
+	pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
+}
+void Motor::setEncPins(int p1, int p2) {
+	encPin1 = p1;   encPin2 = p2;
+}
+void Motor::print() {
+	xmprintf(0, "motor %d \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d]\r\n", 
+		id,  
+		mcpPrev.fSpeed, mcp.fSpeed, 
+		encPos,
+		fCurrent, maxFCurrent,
+		processCounter - millis());
+}
+
+void Motor::updateEncSpeed() {
+	int n = encBuf.num;
+	//static const int needCounts = 18; //   will try to use this number of counts for speed estimation
+	switch (n) {
+		case 0: 
+			encSpeedSimple = 0.0f;
+			encSpeed = encSpeed;
+			break;
+		case 1: 
+			encSpeedSimple = (encBuf.x[0]) * encSpeed1;
+			encSpeed = encSpeed;
+			break;
+		case 2:
+			encSpeedSimple = (encBuf.x[1] - encBuf.x[0]) * encSpeed1;  
+			encSpeed = encSpeed;
+			break;
+		case 3: 
+			encSpeedSimple = (encBuf.x[2] - encBuf.x[1]) * encSpeed1;  
+			encSpeed = encSpeed;
+			break;
+		default: {  //   FIXME: handle rollover here; what is rollover policy on encoder side?
+			// calculate relative rotation angles ( between encBufSize counts ago and all the others)
+			for (int i = 0; i < n; i++) { // FIXME: start counting from 1
+				encDataBuf[i] = (encBuf.x[i] - encBuf.x[0]) * encTicks2Radians;
+			}
+			if (abs(encDataBuf[n - 1]) > 18) { //  if we have some rotation angle inside the buffer
+				parabola_appr(encTimeBuf, encDataBuf, n, abc); // calculate 'abc'
+				// current time is    encTimeBuf[n - 1]
+				encSpeed = 2.0f * abc[0] * encTimeBuf[n - 1] + abc[1];
+			}
+			else {
+				linear_appr(encTimeBuf, encDataBuf, n, abc); // calculate 'ab'
+				encSpeed = abc[0];
+			}
+
+			encSpeedSimple = float(encBuf.x[n-1] - encBuf.x[n-2]) * (encTicks2Radians * 1000.0f) / encReadRate;
+		}
+	}
+}
+
+
+void Motor::processOutput(unsigned int ms) {
+	fCurrent = (current - currentOffset) * a2ma; 
+	if (fCurrent > maxFCurrent) {
+		maxFCurrent = fCurrent;
+	}
+	if (fCurrent > 4000) {
+		bigCurrentFlag = 1;
+		mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
+		++bigCurrentCounter;
+	} else {
 		bigCurrentFlag = 0;
-
-		encBuf.clear();
-		encSpeed = 0.0f;
-
-		memset(encTimeBuf, 0, sizeof(float)*encBufSize);
-		for (int i = 0; i < encBufSize; i++) {
-			encTimeBuf[i] = i * encReadRate * 0.001; 
-		}
-
-		memset(encDataBuf, 0, sizeof(float)*encBufSize);
-	}
-	void setPins(int pwm, int dir, int slp, int flt, int cs) {
-		pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
-	}
-	void setEncPins(int p1, int p2) {
-		encPin1 = p1;   encPin2 = p2;
-	}
-	void print() {
-		xmprintf(0, "motor %d \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d]\r\n", 
-			id,  
-			mcpPrev.fSpeed, mcp.fSpeed, 
-			encPos,
-			fCurrent, maxFCurrent,
-			processCounter - millis());
 	}
 
-	void updateEncSpeed() {
-		switch (encBuf.num) {
-			case 0: encSpeed = 0.0f; break;
-			case 1: encSpeed = (encBuf.x[0]) * encSpeed1;  break;
-			case 2: encSpeed = (encBuf.x[1] - encBuf.x[0]) * encSpeed1;  break;
-			case 3: encSpeed = (encBuf.x[2] - encBuf.x[1]) * encSpeed1;  break;
-			default: {  //   FIXME: handle rollover here; what is rollover policy on encoder side?
-				// calculate relative rotation angles ( between encBufSize counts ago and all the others)
-				for (int i = 0; i < encBuf.num; i++) { // FIXME: start counting from 1
-					encDataBuf[i] = (encBuf.x[i] - encBuf.x[0]) * encTicks2Radians;
-				}
-				parabola_appr(encTimeBuf, encDataBuf, encBuf.num, abc); // calculate 'abc'
-				// current time is    encTimeBuf[encBuf.num - 1]
-				encSpeed= 2.0f*abc[0]*encTimeBuf[encBuf.num - 1] + abc[1];
-			}
-		}
+	if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
+		// we already set what was needed
+		return;
 	}
-
-
-	void processOutput(unsigned int ms) {
-		fCurrent = (current - currentOffset) * a2ma; 
-		if (fCurrent > maxFCurrent) {
-			maxFCurrent = fCurrent;
-		}
-		if (fCurrent > 4000) {
-			bigCurrentFlag = 1;
-			mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
-			++bigCurrentCounter;
-		} else {
-			bigCurrentFlag = 0;
-		}
-
-		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
-			// we already set what was needed
-			return;
-		}
-		
-		switch (mmode) {
-		case mSimple:
-			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
-			break;
-		case mLinear:
-			if (mcpPrev.fSpeed == mcp.fSpeed) {
-				memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
-			} else  { //   change fSpeed:
-				float x;
-				if (mcpPrev.fSpeed < mcp.fSpeed) { //  go up
-					x = mcpPrev.fSpeed + fStep;
-					if (x > mcp.fSpeed) {
-						x = mcp.fSpeed;
-					}
-				} else {  //  go down
-					x = mcpPrev.fSpeed - fStep;
-					if (x < mcp.fSpeed) {
-						x = mcp.fSpeed;
-					}		
-				}
-				mcpPrev.mcUpdate(x, ms, false);
-			}
-			break;
-		};
-
-		//now  mcpPrev have what we need
-		analogWrite(pwmPin, mcpPrev.speed);
-		int d = mcpPrev.dir;
-		if (invDir) {
-			d = (d == LOW) ? HIGH : LOW;
-		}
-		digitalWriteFast(dirPin, d);
-	}
-
-	void mProcess(unsigned int ms) {
-		++processCounter;// supposed to be a  milliseconds counter
-		current = analogRead(csPin);
-
-		switch (mState) {
-		case msCalibrate:
-			currentOffset += current;
-			if (processCounter >= calibrationTime) {
-				currentOffset /= processCounter;
-				//xmprintf(0, "motor %d currentOffset %d (%.2f mv)\r\n", id, 
-				//	currentOffset, currentOffset*a2mv);
-				mState = msWork;
-			}
+	
+	switch (mmode) {
+	case mSimple:
+		memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
 		break;
-		default: break;
-		};
-
-		
-		if (((processCounter % mdProcessRate) == 0) && (mState == msWork)) {
-			processOutput(ms);
-		}
-		if ((processCounter % encReadRate) == 0) {   //  encoder
-			int newPosition = enc.read();
-			if (encPos != newPosition) {
-				encPos = newPosition;
+	case mLinear:
+		if (mcpPrev.fSpeed == mcp.fSpeed) {
+			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
+		} else  { //   change fSpeed:
+			float x;
+			if (mcpPrev.fSpeed < mcp.fSpeed) { //  go up
+				x = mcpPrev.fSpeed + fStep;
+				if (x > mcp.fSpeed) {
+					x = mcp.fSpeed;
+				}
+			} else {  //  go down
+				x = mcpPrev.fSpeed - fStep;
+				if (x < mcp.fSpeed) {
+					x = mcp.fSpeed;
+				}		
 			}
-			encBuf.rAdd(newPosition);
-			updateEncSpeed();
+			mcpPrev.mcUpdate(x, ms, false);
 		}
+		break;
+	};
 
+	//now  mcpPrev have what we need
+	analogWrite(pwmPin, mcpPrev.speed);
+	int d = mcpPrev.dir;
+	if (invDir) {
+		d = (d == LOW) ? HIGH : LOW;
+	}
+	digitalWriteFast(dirPin, d);
+}
 
+void Motor::mProcess(unsigned int ms) {
+	++processCounter;// supposed to be a  milliseconds counter
+	current = analogRead(csPin);
 
-		//mcpPrevCopy = mcpPrev;
+	switch (mState) {
+	case msCalibrate:
+		currentOffset += current;
+		if (processCounter >= calibrationTime) {
+			currentOffset /= processCounter;
+			//xmprintf(0, "motor %d currentOffset %d (%.2f mv)\r\n", id, 
+			//	currentOffset, currentOffset*a2mv);
+			mState = msWork;
+		}
+	break;
+	default: break;
+	};
+
+	
+	if (((processCounter % mdProcessRate) == 0) && (mState == msWork)) {
+		processOutput(ms);
+	}
+	if ((processCounter % encReadRate) == 0) {   //  encoder
+#ifndef PCTEST
+		int newPosition = enc.read();
+#else
+		int newPosition  = 0;
+#endif
+		if (encPos != newPosition) {
+			encPos = newPosition;
+		}
+		encBuf.rAdd(newPosition);
+		updateEncSpeed();
 	}
 
-	// called from lower priority (not interrupt)
-	void setSpeed(float mSpeed, unsigned int time) {
-			mcp.mcUpdate(mSpeed, time, true);
-	}
 
-	/**  call this after setting all the pins.
-	 * 	one single motor setup.
-	 */
-	void mSetup(int id_) {
-		mSoftReset();
-		id = id_;
-		invDir = ((id % 2) == 0);
-		
-		pinMode(csPin, INPUT);
-		pinMode(fltPin, INPUT_PULLUP);
 
-		pinMode(dirPin, OUTPUT);
-		digitalWriteFast(dirPin, mcp.dir); 
+	//mcpPrevCopy = mcpPrev;
+}
 
-		pinMode(pwmPin, OUTPUT);
-		//analogWriteFrequency(pwmPin, 20000.0f);
-		analogWriteFrequency(pwmPin, 18310.55f);
-		analogWrite(pwmPin, mcp.speed);
+// called from lower priority (not interrupt)
+void Motor::setSpeed(float mSpeed, unsigned int time) {
+		mcp.mcUpdate(mSpeed, time, true);
+}
 
-		pinMode(slpPin, OUTPUT);
-		digitalWriteFast(slpPin, HIGH);  
+/**  call this after setting all the pins.
+ * 	one single motor setup.
+ */
+void Motor::mSetup(int id_) {
+	mSoftReset();
+	id = id_;
+	invDir = ((id % 2) == 0);
+#ifndef PCTEST
+	pinMode(csPin, INPUT);
+	pinMode(fltPin, INPUT_PULLUP);
 
-		enc.eSetup(encPin1, encPin2);
-	}
+	pinMode(dirPin, OUTPUT);
+	digitalWriteFast(dirPin, mcp.dir); 
 
-};
+	pinMode(pwmPin, OUTPUT);
+	//analogWriteFrequency(pwmPin, 20000.0f);
+	analogWriteFrequency(pwmPin, 18310.55f);
+	analogWrite(pwmPin, mcp.speed);
+
+	pinMode(slpPin, OUTPUT);
+	digitalWriteFast(slpPin, HIGH);  
+
+	enc.eSetup(encPin1, encPin2);
+#endif
+}
+
+
 
 
 static Motor m[2];
@@ -314,19 +319,21 @@ void getMSpeed(float& m1Speed, float& m2Speed) {
 	m1Speed = m[0].mcpPrev.fSpeed;
 	m2Speed = m[1].mcpPrev.fSpeed;
 }
-
+#ifndef PCTEST
 void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();
 	m[0].mProcess(ms);
 	m[1].mProcess(ms);
 }
+#endif
 void mdPrint() {
 	m[0].print();
 	m[1].print();
 }
-
+#ifndef PCTEST
 EventResponder er;
 MillisTimer mt;
+#endif
 
 int mdSetup() {
 	m[0].setPins(m1pwm, m1dir, m1slp, m1flt, m1cs);
@@ -339,10 +346,10 @@ int mdSetup() {
 	m[1].mSetup(2);
 
 	// setup an interrupt for  'mdProcess'
-	
+#ifndef PCTEST	
 	er.attachInterrupt(mdProcess);
 	mt.beginRepeating(1, er);
-
+#endif
 	return 0;
 }
 
