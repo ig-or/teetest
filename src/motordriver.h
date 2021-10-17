@@ -1,6 +1,12 @@
 #pragma once
 
 #include "xmroundbuf.h"
+#ifndef PCTEST
+	#include <Arduino.h>
+	#define ENCODER_USE_INTERRUPTS
+	#define ENCODER_OPTIMIZE_INTERRUPTS
+	#include <Encoder.h>	
+#endif
 
 int mdSetup();
 void setMSpeed(float m1Speed, float m2Speed);

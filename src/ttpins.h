@@ -54,3 +54,4 @@ const int m2encB = 41;
 const int IR_RECV_PIN = 11;
 
 const int led1_pin = 28;
+const int auEnablePin = 12;
