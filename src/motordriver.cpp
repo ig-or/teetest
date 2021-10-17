@@ -38,7 +38,7 @@ const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
 constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
 constexpr int mdProcessRate = 2; // [ms]
-constexpr int encReadRate = 20; // [ms]
+constexpr int encReadRate = 10; // [ms]
 constexpr float fEncReadRate = float(encReadRate) * 0.001f;
 const int encNumber = 1920; ///< impulses per revolution
 constexpr float encTicks2Radians = TWO * pii / float(encNumber);
@@ -46,7 +46,38 @@ constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< spe
 
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
-static MMODE mmode = mLinear; // motor control mode
+PID::PID() {
+	P = 0.16f;
+	I = 0.5f;
+	D = 0.00f;
+	eInt = 0.0f;
+	ms = 0;
+	error = 0.0f;
+	ret = 0.0f;
+
+	smallError = 2.0f*encTicks2Radians;
+}
+
+float PID::u(float error_, float errorSpeed, unsigned int ms_){  //   FIXME: time rollover
+	float mError = abs(error_);
+	if (mError <= smallError) {
+		eInt = 0.0f;
+		ret = 0.0f;
+	} else {
+		if (ms == 0) { // init
+			eInt = 0.0f;
+		} else {
+			eInt += (error + error_) * 0.5f * (ms_ - ms) / 1000.0f;
+		}
+		ret = P * error + I * eInt - errorSpeed * D;
+	}
+	ms = ms_;
+	error = error_;
+	return ret;
+}
+void PID::pPrint() {
+	xmprintf(0, "PID: eInt=%f; error=%f; ret=%f \r\n", eInt, error, ret);
+}
 
 
 MotorControlParams::MotorControlParams() : speed(0), dir(LOW), ms(0), fSpeed(0.0f) {}
@@ -101,7 +132,9 @@ void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
 
 
 Motor::Motor() {
-
+	mmode = mAngle; // mLinear; // mAngle
+	changeAngleFlag = 0;
+	targetEnc = 0;
 }
 void Motor::mSoftReset() {
 	mState = msCalibrate;
@@ -120,6 +153,9 @@ void Motor::mSoftReset() {
 	}
 
 	memset(encDataBuf, 0, sizeof(float)*encBufSize);
+
+	changeAngleFlag = 0;
+	df = 0.0f;
 }
 void Motor::setPins(int pwm, int dir, int slp, int flt, int cs) {
 	pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
@@ -128,12 +164,16 @@ void Motor::setEncPins(int p1, int p2) {
 	encPin1 = p1;   encPin2 = p2;
 }
 void Motor::print() {
-	xmprintf(0, "motor %d \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d]\r\n", 
+	xmprintf(0, "motor%d%s \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d] mmode=%d \t", 
 		id,  
+		invDir?"inv":" ",
 		mcpPrev.fSpeed, mcp.fSpeed, 
 		encPos,
 		fCurrent, maxFCurrent,
-		processCounter - millis());
+		processCounter - millis(),
+		static_cast<int>(mmode));
+
+	pid.pPrint();
 }
 
 void Motor::updateEncSpeed() {
@@ -190,16 +230,21 @@ void Motor::processOutput(unsigned int ms) {
 		bigCurrentFlag = 0;
 	}
 
-	if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
-		// we already set what was needed
-		return;
-	}
-	
+
 	switch (mmode) {
 	case mSimple:
+		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
+			// we already set what was needed
+			return;
+		}
 		memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
 		break;
 	case mLinear:
+		if ((mcpPrev.speed == mcp.speed) && (mcpPrev.dir == mcp.dir)) {
+			// we already set what was needed
+			return;
+		}
+
 		if (mcpPrev.fSpeed == mcp.fSpeed) {
 			memcpy(&mcpPrev, &mcp, sizeof(mcp));		//  just copy
 		} else  { //   change fSpeed:
@@ -217,6 +262,24 @@ void Motor::processOutput(unsigned int ms) {
 			}
 			mcpPrev.mcUpdate(x, ms, false);
 		}
+		break;
+	case mAngle:
+		if ((processCounter % encReadRate) != 0) {   //  encoder
+			encPos = enc.read();
+			if (!invDir) {  // invert encoder measurements also
+				encPos = -encPos;
+			}
+		}
+		{
+			float e = (targetEnc - encPos) * encTicks2Radians; //  angle error in radians
+			//float u = e*0.25;
+			float u = pid.u(e, encSpeed, ms); //  target speed is zero
+			mcpPrev.mcUpdate(u, ms, false);
+			//if (ms % 2000 == 0) {
+			//	xmprintf(0, "mAngle \te = %f; u = %f; fSpeed=%f; speed = %d \n", e, u, mcpPrev.fSpeed, mcpPrev.speed);
+			//}
+		}
+
 		break;
 	};
 
@@ -246,31 +309,53 @@ void Motor::mProcess(unsigned int ms) {
 	default: break;
 	};
 
-	
+	if ((processCounter % encReadRate) == 0) {   //  encoder
+#ifndef PCTEST
+		encPos = enc.read();
+#else
+		encPos  = 0;
+#endif
+		if (!invDir) {  // invert encoder measurements also
+			encPos = -encPos;
+		}
+
+		encBuf.rAdd(encPos);
+		updateEncSpeed();
+
+		if (changeAngleFlag != 0) {  //   target angle change
+			changeAngleFlag = 0;
+
+			targetEnc =  encPos + df / encTicks2Radians;
+			xmprintf(0, "dEnc = %d \r\n", df / encTicks2Radians);
+		}
+	}
+
 	if (((processCounter % mdProcessRate) == 0) && (mState == msWork)) {
 		processOutput(ms);
 	}
-	if ((processCounter % encReadRate) == 0) {   //  encoder
-#ifndef PCTEST
-		int newPosition = enc.read();
-#else
-		int newPosition  = 0;
-#endif
-		if (encPos != newPosition) {
-			encPos = newPosition;
-		}
-		encBuf.rAdd(newPosition);
-		updateEncSpeed();
-	}
-
-
 
 	//mcpPrevCopy = mcpPrev;
+}
+
+void Motor::changeAngle(float a) {
+	//mmode = mAngle;
+	df = a;
+	changeAngleFlag = 1;
+
 }
 
 // called from lower priority (not interrupt)
 void Motor::setSpeed(float mSpeed, unsigned int time) {
 		mcp.mcUpdate(mSpeed, time, true);
+}
+
+void Motor::mStop() {
+	//bool irq = disableInterrupts();
+	mmode = mLinear;
+	//memcpy(&mcp, &mcpPrev, sizeof(mcp));
+	mcp.mcUpdate(0.0f, millis(), true);
+	//enableInterrupts(irq);
+
 }
 
 /**  call this after setting all the pins.
@@ -315,10 +400,21 @@ void setMSpeed(float m1Speed, float m2Speed) {
 	m[1].setSpeed(m2Speed, ms);
 }
 
+void changeAngle(float da1, float da2) {
+	m[0].changeAngle(da1);
+	m[1].changeAngle(da2);
+}
+
 void getMSpeed(float& m1Speed, float& m2Speed) {
 	m1Speed = m[0].mcpPrev.fSpeed;
 	m2Speed = m[1].mcpPrev.fSpeed;
 }
+void mdStop() {
+	m[0].mStop();
+	m[1].mStop();
+}
+
+
 #ifndef PCTEST
 void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();

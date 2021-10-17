@@ -65,19 +65,24 @@ int processTheCommand(const char* s, int size) {
 		return 0;
 	}
 	if (strcmp(s, "stop") == 0) {
-		setMSpeed(0.0f, 0.0f);
+		//setMSpeed(0.0f, 0.0f);
+		//changeAngle(0.0f, 0.0f);
+		mdStop();
 		return 0;
 	}
 	if (strcmp(s, "left") == 0) {
-		getMSpeed(ms1, ms2);
-		ms1 += 0.05; ms2 -= 0.05;
-		setMSpeed(ms1, ms2);
+		//getMSpeed(ms1, ms2);
+		//ms1 += 0.05; ms2 -= 0.05;
+		//setMSpeed(ms1, ms2);
+
+		changeAngle(0.5f, 0.5f);
 		return 0;
 	}
 	if (strcmp(s, "right") == 0) {
-		getMSpeed(ms1, ms2);
-		ms1 -= 0.05; ms2 += 0.05;
-		setMSpeed(ms1, ms2);
+		//getMSpeed(ms1, ms2);
+		//ms1 -= 0.05; ms2 += 0.05;
+		//setMSpeed(ms1, ms2);
+		changeAngle(-1.0f, -1.0f);
 		return 0;
 	}
 

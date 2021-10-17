@@ -13,11 +13,29 @@ void setMSpeed(float m1Speed, float m2Speed);
 void getMSpeed(float& m1Speed, float& m2Speed);
 void mdProcess();
 void mdPrint();
+void mdStop();
+void changeAngle(float da1, float da2);
 
 
 enum MMODE {
-	mSimple, // just use what we have in 'mcp'
-	mLinear  // 
+	mSimple = 0, // just use what we have in 'mcp'
+	mLinear = 1,  // 
+	mAngle = 2
+};
+
+struct PID {
+	float P;
+	float I;
+	float D;
+
+	float eInt;
+	float error;
+	float ret;
+	unsigned int ms;   //   when we called 'u' last time [ms]
+	float smallError;
+	PID();
+	float u(float error_, float errorSpeed, unsigned int ms_);
+	void pPrint();
 };
 
 ///   values which controls the motor
@@ -41,15 +59,17 @@ struct Motor {
 		msCalibrate,
 		msWork
 	};
+	MMODE mmode;
 	MState mState;
 	MotorControlParams mcp;		///< new params
 	MotorControlParams mcpPrev; ///< previous params
+	PID pid;
 	//MotorControlParams mcpPrevCopy; ///< previous params copy 
 #ifndef PCTEST	
 	Encoder enc; 
 #endif
 	volatile long encPos;
-	static const int encBufSize = 5;
+	static const int encBufSize = 10;
 	//XMRoundBuf<int, encBufSize> encBuf;
 	NativeRoundBuf<int, encBufSize> encBuf;
 	float encTimeBuf[encBufSize]; ///< encoder time in seconds, starting from zero
@@ -71,6 +91,13 @@ struct Motor {
 	unsigned int processCounter;
 	volatile unsigned int bigCurrentCounter;
 	static const int calibrationTime = 20; // ms
+
+	//float targetAngle;
+	float df;
+	int changeAngleFlag;
+	int targetEnc;
+
+
 	Motor();
 	void mSoftReset();
 	void setPins(int pwm, int dir, int slp, int flt, int cs);
@@ -82,6 +109,7 @@ struct Motor {
 
 	void processOutput(unsigned int ms);
 	void mProcess(unsigned int ms);
+	void mStop();
 
 	// called from lower priority (not interrupt)
 	void setSpeed(float mSpeed, unsigned int time);
@@ -90,6 +118,11 @@ struct Motor {
 	 * 	one single motor setup.
 	 */
 	void mSetup(int id_);
+
+	/**
+	 * \param a angle change in radians
+	 * */
+	void changeAngle(float a);
 
 };
 
