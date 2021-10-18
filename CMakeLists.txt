@@ -49,7 +49,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${BUILD_DIR}/release")
 
 add_definitions(-DOURPROJECTNAME=${PROJECT_NAME}) # -DENCODER_USE_INTERRUPTS -DENCODER_OPTIMIZE_INTERRUPTS)
 #add_definitions(-DNOMINMAX)
-add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS)
+add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS -DUSE_IMU_INDEX=1 -DXMPRINTF_TO_FILE)
 
 set(ourGroupNames)
 SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
@@ -78,8 +78,9 @@ addSourceFiles(core "${xqt}/core/src"
   xmroundbuf xmutils xstdef xmatrixplatform
 )
  
-#addSourceFiles(msg "xqtools/message/src"
-#  xmessage xmessagesend)
+addSourceFiles(core "${xqt}/message/src"
+  xmessage xmessagesend
+)
 
 # add all the libraries:
 set(libFoldersList)

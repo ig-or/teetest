@@ -132,7 +132,7 @@ void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
 
 
 Motor::Motor() {
-	mmode = mAngle; // mLinear; // mAngle
+	mmode = mLinear; // mLinear; // mAngle
 	changeAngleFlag = 0;
 	targetEnc = 0;
 }

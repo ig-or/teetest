@@ -6,6 +6,7 @@
 #include "teetools.h"
 #include "ttpins.h"
 #include "motordriver.h"
+#include "memsic.h"
 
 
 static const int incomingUsbSerialInfoSize = 32;
@@ -33,6 +34,9 @@ void onIncomingInfo(char* s, int size) {
 		if (i + infoIndex >= (infoSize-1)) {  //   overflow?
 			infoIndex = 0;  //  reset!
 		}
+
+		usb_serial_write(s+i, 1); // echo
+
 		if ((s[i] == 0) || (s[i] == '\n') || (s[i] == '\r')) {
 			info[infoIndex] = 0;
 			processTheCommand(info, infoIndex);
@@ -90,6 +94,10 @@ int processTheCommand(const char* s, int size) {
 	if (strcmp(s, "setup") == 0) {
 		mdPrint();
 		return 0;
+	}
+
+	if (strcmp(s, "imu") == 0) {
+		memsicPrint();
 	}
 
     return 0;

@@ -46,3 +46,33 @@ writeHere:
 	return 0;
 }
 
+void assert_failed(const char* file, unsigned int line, const char* str) {
+	xmprintf(0, "AF: file %s, line %d, %s \r\n", file, line, str);
+}
+
+int  xm_printf(const char * s, ...) {
+	va_list args;
+	va_start(args, s);
+	int ok;
+
+	int bs = 0;
+
+	ok = vsnprintf_P(sbuf + bs, sbSize - 1 - bs, s, args);
+	if ((ok <= 0) || (ok >= (sbSize - bs))) {
+		strcpy(sbuf, " errror 2\n");
+	}
+
+writeHere:
+	int eos = strlen(sbuf);
+	sbuf[sbSize - 1] = 0;
+
+//	if (usbSerialWorking /*&& (dst & 4)*/) {
+		usb_serial_write((void*)(sbuf), eos);
+//	}
+
+	va_end(args);
+	sprintCounter++;
+
+	return 0;
+}
+

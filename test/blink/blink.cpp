@@ -6,7 +6,10 @@
 #include "teetools.h"
 #include "cmdhandler.h"
 #include "motordriver.h"
+#include "memsic.h"
 #include "ir.h"
+
+#include "xmfilter.h"
 
 //#include "EventResponder.h"
 
@@ -20,6 +23,14 @@ void event1s() {
 
 }
 
+PolyFilter<3> imuAX;
+float axSmoothed = 0.0f;
+int axSmoothCounter = 0;
+void imuInfo(const xqm::ImuData& imu) {
+	axSmoothed = imuAX.pfNext(imu.a[0]) / 12.0f;
+	axSmoothCounter++;
+}
+
 //volatile unsigned int msCounter = 0;
 
 
@@ -27,6 +38,10 @@ void event1s() {
 extern "C" int main(void) {
   // initialize the digital pin as an output.
 	ttSetup();
+	imuAX.pfInit(ca3_25_100, cb3_25_100);
+
+	//const int incomingUsbSerialInfoSize = 32;
+	//char incomingUsbSerialInfo[incomingUsbSerialInfoSize];
 
 	msNow = millis();
 	uint32_t fast100msPingTime = msNow;
@@ -43,7 +58,7 @@ extern "C" int main(void) {
 	int halfPhaseLen = phaseLen / 2;
 	unsigned int hsTime = 0;
 	const int hsPeriod = 4500;
-	xmprintf(0, "4.1 started\r\n");
+	xmprintf(0, "\r\n4.1 started\r\n");
 
 /*
 	EventResponder er;
@@ -84,7 +99,12 @@ extern "C" int main(void) {
 		//digitalWriteFast(led1_pin, HIGH);
 		//mdProcess();
 
-		delay(10);
+		delay(2);
+		axSmoothCounter = 0;
+		processMemsicData(imuInfo);
+		if (axSmoothCounter != 0) {
+			setMSpeed(axSmoothed, axSmoothed);
+		}
 
 		if (msNow > (fast100msPingTime + 100)) {
 			fast100msPingTime = msNow;

@@ -55,3 +55,13 @@ const int IR_RECV_PIN = 6;
 
 const int led1_pin = 33;
 
+	// =========  memsic IMU ==============
+const int   memsicDataReadyPin	=	32;	// Data Ready (SPI Communication Data Ready) / SPI-UART Port Select
+const int   memsicSPISelectPin	=	0;	// SPI Chip Select (SS)
+//const int   memsicResetPin	=		17;	// External Reset (NRST)
+const int imuPwrPin = 34;
+//const int   memsicSamplingPin	=	15;	// Inertial-Sensor Sampling Indicator (sampling upon falling edge)
+//const int   memsicSyncInputPin	=	24;	// Synchronization Input (1KHz Pulse used to synchronize SPI Comm) / 1PPS Input (External GPS)
+const int   memsicDataRate_		=	200;			
+#define   memsicSPI   SPI1
+
