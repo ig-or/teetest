@@ -75,7 +75,7 @@ addSourceFiles(matrix "${xqt}/matrix/src"
 )
 	
 addSourceFiles(core "${xqt}/core/src"
-  xmroundbuf xmutils xstdef xmatrixplatform
+  rbuf xmroundbuf xmutils xstdef xmatrixplatform
 )
  
 addSourceFiles(core "${xqt}/message/src"

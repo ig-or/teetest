@@ -131,7 +131,7 @@ void dataR() {
 			memsicIntCounter++;
 			
 			digitalWriteFast(memsicSPISelectPin, LOW);
-			memsicSPI.transfer(&bInfoIn, &bInfoOut, sizeof(MemsicBurstInfo), memsicResponder);
+			memsicSPI.transfer(&bInfoIn, &bInfoOut, sizeof(MemsicBurstInfo), memsicResponder); // ????
 		break;
 		default:
 			break;
@@ -298,7 +298,7 @@ void setupMemsic_1() {
 	memsicStatus = -1;
 	memsicDataready = 0;
 	hInfoRB1.empty();
-	memsicResponder.attachInterrupt(erFunction);
+	memsicResponder.attachInterrupt(erFunction); // attachImmediate // attachInterrupt
 	memsicInfo.status = 100;  //  not valid
 
 	pinMode( memsicDataReadyPin, OUTPUT );  

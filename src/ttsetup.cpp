@@ -6,6 +6,7 @@
 #include "ir.h"
 #include "teetools.h"
 #include "memsic.h"
+#include "logfile.h"
 
 int ttSetup() {
 	pinMode(imuPwrPin, OUTPUT);
@@ -16,6 +17,7 @@ int ttSetup() {
 	//   from https://www.pjrc.com/teensy/td_pulse.html, see the bottom of the page
 	analogWriteResolution(13);
     analogReadResolution(13);
+	lfInit();
 
 
     mdSetup();
@@ -30,6 +32,7 @@ int ttSetup() {
 	//digitalWriteFast(led1_pin, HIGH);
 
 	delay(50);
+	
 	setupMemsic_2();
 	digitalWriteFast(imuPwrPin, HIGH); // turn on IMU
 	delay(500);

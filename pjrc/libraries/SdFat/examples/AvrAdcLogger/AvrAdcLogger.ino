@@ -662,9 +662,9 @@ void logData() {
   adcStart();
   while (1) {
     uint32_t m;
-    bool irq = disableInterrupts();
+    noInterrupts();
     size_t tmpFifoCount = fifoCount;
-    enableInterrupts(irq);
+    interrupts();
     if (tmpFifoCount) {
       block_t* pBlock = fifoData + fifoTail;
       // Write block to SD.
@@ -694,9 +694,9 @@ void logData() {
       pBlock->overrun = 0;
       fifoTail = fifoTail < (FIFO_DIM - 1) ? fifoTail + 1 : 0;
 
-      bool irq = disableInterrupts();
+      noInterrupts();
       fifoCount--;
-      enableInterrupts(irq);
+      interrupts();
 
       if (binFile.curPosition() >= MAX_FILE_SIZE) {
         // File full so stop ISR calls.

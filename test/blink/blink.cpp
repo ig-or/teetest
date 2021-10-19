@@ -8,6 +8,7 @@
 #include "motordriver.h"
 #include "memsic.h"
 #include "ir.h"
+#include "logfile.h"
 
 #include "xmfilter.h"
 
@@ -32,7 +33,6 @@ void imuInfo(const xqm::ImuData& imu) {
 }
 
 //volatile unsigned int msCounter = 0;
-
 
 
 extern "C" int main(void) {
@@ -105,6 +105,8 @@ extern "C" int main(void) {
 		if (axSmoothCounter != 0) {
 			setMSpeed(axSmoothed, axSmoothed);
 		}
+
+		lfProcess();
 
 		if (msNow > (fast100msPingTime + 100)) {
 			fast100msPingTime = msNow;

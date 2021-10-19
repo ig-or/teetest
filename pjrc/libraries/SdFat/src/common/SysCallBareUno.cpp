@@ -47,9 +47,9 @@ SdMillis_t SysCall::curTimeMS() {
     // Enable interrupt.
     TIMSK2 = (1 << OCIE2A);
   }
-  bool irq = disableInterrupts();
+  cli();
   uint16_t rtn = timer2;
-  enableInterrupts(irq);
+  sei();
   return rtn;
 }
 #endif  // defined(__AVR_ATmega328P__) && !ENABLE_ARDUINO_FEATURES

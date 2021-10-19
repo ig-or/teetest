@@ -107,7 +107,7 @@ void fastBitWriteSafe(volatile uint8_t* address, uint8_t mask, bool level) {
   uint8_t s;
   if (address > reinterpret_cast<uint8_t*>(0X3F)) {
     s = SREG;
-    bool irq = disableInterrupts();
+    cli();
   }
   if (level) {
     *address |= mask;

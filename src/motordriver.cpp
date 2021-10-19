@@ -18,6 +18,7 @@
 #include "xmatrixplatform.h"
 #include "xmroundbuf.h"
 #include "xmatrix2.h"
+#include "logfile.h"
 
 #ifdef PCTEST
 
@@ -335,6 +336,7 @@ void Motor::mProcess(unsigned int ms) {
 	}
 
 	//mcpPrevCopy = mcpPrev;
+
 }
 
 void Motor::changeAngle(float a) {
@@ -420,6 +422,17 @@ void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();
 	m[0].mProcess(ms);
 	m[1].mProcess(ms);
+
+	char stmp[32];
+	int test = snprintf(stmp, 32, "%u\t%d\t%d\n", 
+		ms, 
+		floor((m[0].current - m[0].currentOffset) * a2ma),
+		floor((m[1].current - m[1].currentOffset) * a2ma)
+		);
+
+	if ((test > 0) && (test < 32)) {
+		lfFeed(stmp, test+1);
+	}
 }
 #endif
 void mdPrint() {

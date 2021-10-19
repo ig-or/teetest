@@ -93,9 +93,9 @@ class RingBuf : public Print {
    */
   size_t bytesFree() const {
     size_t count;
-    bool irq = disableInterrupts();
+    noInterrupts();
     count = m_count;
-    enableInterrupts(irq);
+    interrupts();
     return Size - count;
   }
   /**
@@ -109,9 +109,9 @@ class RingBuf : public Print {
    */
   size_t bytesUsed() const {
     size_t count;
-    bool irq = disableInterrupts();
+    noInterrupts();
     count = m_count;
-    enableInterrupts(irq);
+    interrupts();
     return count;
   }
   /**
@@ -259,9 +259,9 @@ class RingBuf : public Print {
         m_head = advance(m_head, n);
         nread += n;
     }
-    bool irq = disableInterrupts();
+    noInterrupts();
     m_count += nread;
-    enableInterrupts(irq);
+    interrupts();
     return nread;
   }
   /**
@@ -332,9 +332,9 @@ class RingBuf : public Print {
       m_tail = advance(m_tail, n);
       nwrite += n;
     }
-    bool irq = disableInterrupts();
+    noInterrupts();
     m_count -= nwrite;
-    enableInterrupts(irq);
+    interrupts();
     return nwrite;
   }
 

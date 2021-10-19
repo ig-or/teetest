@@ -7,6 +7,7 @@
 #include "ttpins.h"
 #include "motordriver.h"
 #include "memsic.h"
+#include "logfile.h"
 
 
 static const int incomingUsbSerialInfoSize = 32;
@@ -98,6 +99,20 @@ int processTheCommand(const char* s, int size) {
 
 	if (strcmp(s, "imu") == 0) {
 		memsicPrint();
+	}
+	
+	if (strncmp(s, "log", 3) == 0) {
+		if (strlen(s) > 4) { //   use log file name
+			lfStart(s + 4);
+		} else {
+			lfStart("log.xq");
+		}
+	}
+	if (strcmp(s, "lstop") == 0) {
+		lfStop();
+	}
+	if (strcmp(s, "lprint") == 0) {
+		lfPrint();
 	}
 
     return 0;

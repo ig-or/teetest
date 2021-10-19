@@ -55,20 +55,20 @@ inline uint8_t unoDigitalRead(uint8_t pin) {
 inline void unoDigitalWrite(uint8_t pin, uint8_t value) {
   volatile uint8_t* port = pin < 8 ? &PORTD : pin < 14 ? &PORTB : &PORTC;
   uint8_t bit = unoBit(pin);
- bool irq = disableInterrupts();
+  cli();
   if (value) {
     *port |= bit;
   } else {
     *port &= ~bit;
   }
-  enableInterrupts(irq);
+  sei();
 }
 
 inline void unoPinMode(uint8_t pin, uint8_t mode) {
   uint8_t bit = unoBit(pin);
   volatile uint8_t* reg = pin < 8 ? &DDRD : pin < 14 ? &DDRB : &DDRC;
 
-  bool irq = disableInterrupts();
+  cli();
   if (mode == OUTPUT) {
     *reg |= bit;
   } else {
@@ -76,7 +76,7 @@ inline void unoPinMode(uint8_t pin, uint8_t mode) {
     // handle INPUT pull-up
     unoDigitalWrite(pin, mode != INPUT);
   }
-  enableInterrupts(irq);
+  sei();
 }
 
 #define UNO_SS   10
