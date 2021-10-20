@@ -83,20 +83,21 @@ struct Motor {
 	int pwmPin, dirPin, slpPin, fltPin, csPin;
 	///  encoder pins:
 	int encPin1, encPin2;
-	int current, currentOffset;
+	volatile int current;
+	int currentOffset;
 	float fCurrent, maxFCurrent; // milliamps
 	volatile int bigCurrentFlag;
 	int id;  ///< motor ID
 	bool invDir; ///< invert direction of the rotation
 	unsigned int processCounter;
 	volatile unsigned int bigCurrentCounter;
-	static const int calibrationTime = 20; // ms
+	static const int calibrationTime = 100; // ms
 
 	//float targetAngle;
 	float df;
 	int changeAngleFlag;
 	int targetEnc;
-
+	float mc_e, mc_u;
 
 	Motor();
 	void mSoftReset();

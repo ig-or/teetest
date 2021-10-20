@@ -15,6 +15,13 @@ void lfStop();
  * */
 void lfFeed(void* data, int size);
 
+int lfSendMessage(const unsigned char* data, unsigned char type, unsigned short int size);
+template<class T> int lfSendMessage(const T* info) {
+	int ret;
+	ret = lfSendMessage((unsigned char*)(info), T::type, sizeof(T));
+	return ret;
+}
+
 /** save info to the log file.
  *  call this not from the interrupt.
  * */

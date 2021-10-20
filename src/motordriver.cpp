@@ -6,6 +6,7 @@
 	#define ENCODER_OPTIMIZE_INTERRUPTS
 	#include <Encoder.h>
 	#include "EventResponder.h"
+	#include "IntervalTimer.h"
 	
 #endif
 #include "teetools.h"
@@ -19,6 +20,8 @@
 #include "xmroundbuf.h"
 #include "xmatrix2.h"
 #include "logfile.h"
+#include "xmessage.h"
+#include "xmessagesend.h"
 
 #ifdef PCTEST
 
@@ -136,6 +139,8 @@ Motor::Motor() {
 	mmode = mLinear; // mLinear; // mAngle
 	changeAngleFlag = 0;
 	targetEnc = 0;
+	mc_e = 0.0;
+	mc_u = 0.0;
 }
 void Motor::mSoftReset() {
 	mState = msCalibrate;
@@ -272,10 +277,10 @@ void Motor::processOutput(unsigned int ms) {
 			}
 		}
 		{
-			float e = (targetEnc - encPos) * encTicks2Radians; //  angle error in radians
+			mc_e = (targetEnc - encPos) * encTicks2Radians; //  angle error in radians
 			//float u = e*0.25;
-			float u = pid.u(e, encSpeed, ms); //  target speed is zero
-			mcpPrev.mcUpdate(u, ms, false);
+			mc_u = pid.u(mc_e, encSpeed, ms); //  target speed is zero
+			mcpPrev.mcUpdate(mc_u, ms, false);
 			//if (ms % 2000 == 0) {
 			//	xmprintf(0, "mAngle \te = %f; u = %f; fSpeed=%f; speed = %d \n", e, u, mcpPrev.fSpeed, mcpPrev.speed);
 			//}
@@ -295,7 +300,7 @@ void Motor::processOutput(unsigned int ms) {
 
 void Motor::mProcess(unsigned int ms) {
 	++processCounter;// supposed to be a  milliseconds counter
-	current = analogRead(csPin);
+	//current = analogRead(csPin);
 
 	switch (mState) {
 	case msCalibrate:
@@ -416,14 +421,14 @@ void mdStop() {
 	m[1].mStop();
 }
 
-
+xqm::TeeMotor mInfo[2];
 #ifndef PCTEST
 void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();
 	m[0].mProcess(ms);
 	m[1].mProcess(ms);
 
-	char stmp[32];
+	/*char stmp[32];
 	int test = snprintf(stmp, 32, "%u\t%d\t%d\n", 
 		ms, 
 		floor((m[0].current - m[0].currentOffset) * a2ma),
@@ -433,6 +438,22 @@ void mdProcess(EventResponderRef r) {
 	if ((test > 0) && (test < 32)) {
 		lfFeed(stmp, test+1);
 	}
+	*/
+	for (int i = 0; i < 2; i++) {
+		mInfo[i].timestamp = ms;
+		mInfo[i].id = m[i].id;
+		mInfo[i].e = m[i].mc_e;
+		mInfo[i].pid_eInt = m[i].pid.eInt;
+		mInfo[i].u = m[i].mc_u;
+
+		mInfo[i].enc = m[i].encPos;
+		mInfo[i].targetEnc = m[i].targetEnc;
+		mInfo[i].encSpeed = m[i].encSpeed;
+		mInfo[i].encSpeedSimple = m[i].encSpeedSimple;
+
+		lfSendMessage(&(mInfo[i]));
+	}
+	
 }
 #endif
 void mdPrint() {
@@ -442,7 +463,27 @@ void mdPrint() {
 #ifndef PCTEST
 EventResponder er;
 MillisTimer mt;
+IntervalTimer iTimer;
 #endif
+
+//char //[32];
+xqm::TeeCurrent tcu;
+void onCurrent() {
+	unsigned int mks = micros();
+	m[0].current = analogRead(m[0].csPin);
+	m[1].current = analogRead(m[1].csPin);
+
+	//int bs = snprintf(curTmp, 32, "%u\t%d\t%d\n", mks, m[0].current, m[1].current);
+	//if ((bs > 0) && (bs < 32)) {
+	//		lfFeed(curTmp, bs+1);
+	//	}
+
+	tcu.timestamp= mks;
+	tcu.cu[0] = m[0].current;
+	tcu.cu[1] = m[1].current;
+	lfSendMessage(&tcu);
+}
+
 
 int mdSetup() {
 	m[0].setPins(m1pwm, m1dir, m1slp, m1flt, m1cs);
@@ -459,6 +500,8 @@ int mdSetup() {
 	er.attachInterrupt(mdProcess);
 	mt.beginRepeating(1, er);
 #endif
+	iTimer.priority(145);
+	iTimer.begin(onCurrent, 100);
 	return 0;
 }
 
