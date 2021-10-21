@@ -8,9 +8,14 @@ extern uint32_t msNow;
 extern uint32_t mksNow;
 
 //const int maxPWM = 65535;  // because of the 16 bit resolution
-const int maxPWM = 8191; //    13 bit
-constexpr float a2mv = 3300.0f / maxPWM; // translation from adc reading into millivolts
-constexpr float a2ma = 50 * 3300.0f / maxPWM; // translation from adc reading into milliamps for motor driver
+const unsigned int pwmResolution = 13;
+constexpr unsigned int maxPWM = (1 << pwmResolution) - 1;  // 8191 for    13 bit
+const unsigned int adcResolution = 10;
+constexpr unsigned int maxADC = (1 << adcResolution)  - 1;
+constexpr float a2mv = 3300.0f / maxADC; // translation from adc reading into millivolts; like 3.3v is a full range
+constexpr float a2ma = 50 * 3300.0f / maxADC; // translation from adc reading into milliamps for motor driver; 50 for every millivolt
+
+void logSetup(const char* fileName);
 
 /*
 struct TTime {

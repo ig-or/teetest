@@ -103,8 +103,10 @@ int processTheCommand(const char* s, int size) {
 	
 	if (strncmp(s, "log", 3) == 0) {
 		if (strlen(s) > 4) { //   use log file name
+			logSetup(s + 4);
 			lfStart(s + 4);
 		} else {
+			logSetup("log");
 			lfStart("log.xq");
 		}
 	}

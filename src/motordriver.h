@@ -106,6 +106,7 @@ struct Motor {
 	void print();
 
 	void updateEncSpeed();
+	void saveSettingsToFile
 
 
 	void processOutput(unsigned int ms);
@@ -126,5 +127,7 @@ struct Motor {
 	void changeAngle(float a);
 
 };
+
+extern Motor m[2];
 
 

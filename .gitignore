@@ -4,4 +4,5 @@ b1
 *.d 
 *.o
 .vscode
+lib-vs-x64
 

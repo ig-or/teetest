@@ -1,16 +1,96 @@
 #include <Arduino.h>
 #include "usb_serial.h"
 #include <stdarg.h>
+#include "SdFat.h"
 
 #include "teetools.h"
+#include "motordriver.h"
 
 uint32_t msNow = 0;
 uint32_t mksNow = 0;
 
+int ptf(FsFile& file, const char* s, ...); 
+
+//  from https://github.com/sstaub/TeensyID/blob/master/TeensyID.cpp
+static uint32_t getTeensySerial(void) {
+	uint32_t num;
+	num = HW_OCOTP_MAC0 & 0xFFFFFF;
+	return num;
+}
+void teensySN(uint8_t *sn) {
+	uint32_t num = getTeensySerial();
+	sn[0] = num >> 24;
+	sn[1] = num >> 16;
+	sn[2] = num >> 8;
+	sn[3] = num;
+}
+
+const char* teensySN(void) {
+	uint8_t serial[4];
+	static char teensySerial[16];
+	teensySN(serial);
+	sprintf(teensySerial, "%02x-%02x-%02x-%02x", serial[0], serial[1], serial[2], serial[3]);
+	return teensySerial;
+}
+
+void logSetup(const char* fileName) {
+	char fn[32];
+	strncpy(fn, fileName, 16);
+	strcat(fn, "_s.txt");
+	FsFile f;
+
+	if (!f.open(fileName, O_CREAT | O_TRUNC | O_WRONLY)) {
+		return;
+	}
+	if (!f.preAllocate(1024)) {
+		return;
+	}
+
+	ptf(f, "%s %s settings\n\ntime %.3f s", 
+		teensySN(), fileName, (((float)(millis())) / 1000.0f));
+
+	for (int i = 0; i < 2; i++) {
+		ptf(f, "m%d_PID %f  %f  %f\n", m[i].id,  m[i].pid.P, m[i].pid.I, m[i].pid.D);
+	}
+
+	ptf(f, "pwmResolution %d;  maxPWM %d\nadcResolution %d;  maxADC %d\na2mv %f;  a2ma %f", 
+		pwmResolution, maxPWM, adcResolution, maxADC, a2mv, a2ma);
+
+
+	if (!f.truncate()) {
+
+  	}
+	f.close();
+
+}
 
 static uint32_t sprintCounter = 0;
 static const int sbSize = 512;
 static char sbuf[sbSize];
+
+int ptf(FsFile& file, const char* s, ...) {
+	va_list args;
+	va_start(args, s);
+	int ok;
+
+	ok = vsnprintf_P(sbuf, sbSize - 1, s, args);
+	va_end(args);
+
+	if ((ok <= 0) || (ok >= (sbSize))) {
+		return 1;
+	}
+	unsigned int eos = strlen(sbuf);
+	if (eos >= sbSize) {
+		eos = sbSize-1;
+	}
+	sbuf[eos] = 0;
+	int test = file.write(sbuf, eos+1);
+	if (test <= 0) {
+		return 2;
+	}
+
+	return 0;
+}
 
 int xmprintf(int dst, const char* s, ...) {
 	va_list args;
@@ -28,6 +108,7 @@ int xmprintf(int dst, const char* s, ...) {
 	}
 
 	ok = vsnprintf_P(sbuf + bs, sbSize - 1 - bs, s, args);
+	va_end(args);
 	if ((ok <= 0) || (ok >= (sbSize - bs))) {
 		strcpy(sbuf, " errror 2\n");
 	}
@@ -39,8 +120,7 @@ writeHere:
 //	if (usbSerialWorking /*&& (dst & 4)*/) {
 		usb_serial_write((void*)(sbuf), eos);
 //	}
-
-	va_end(args);
+	
 	sprintCounter++;
 
 	return 0;

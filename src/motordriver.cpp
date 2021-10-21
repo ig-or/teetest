@@ -54,6 +54,7 @@ PID::PID() {
 	P = 0.16f;
 	I = 0.5f;
 	D = 0.00f;
+	
 	eInt = 0.0f;
 	ms = 0;
 	error = 0.0f;
@@ -394,7 +395,7 @@ void Motor::mSetup(int id_) {
 
 
 
-static Motor m[2];
+Motor m[2];
 
 
 //void setMotorParams(int index, float mSpeed) {
