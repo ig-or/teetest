@@ -35,14 +35,17 @@ const char* teensySN(void) {
 
 void logSetup(const char* fileName) {
 	char fn[32];
+	xmprintf(0, "logSetup! %s\r\n", fileName);
 	strncpy(fn, fileName, 16);
 	strcat(fn, "_s.txt");
 	FsFile f;
 
-	if (!f.open(fileName, O_CREAT | O_TRUNC | O_WRONLY)) {
+	if (!f.open(fn, O_CREAT | O_TRUNC | O_WRONLY)) {
+		xmprintf(0, "could not open file %s for writing \r\n", fn);
 		return;
 	}
 	if (!f.preAllocate(1024)) {
+		xmprintf(0, "can not preallocate space for a file %s \r\n", fn);
 		return;
 	}
 

@@ -106,8 +106,6 @@ struct Motor {
 	void print();
 
 	void updateEncSpeed();
-	void saveSettingsToFile
-
 
 	void processOutput(unsigned int ms);
 	void mProcess(unsigned int ms);

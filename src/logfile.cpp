@@ -11,7 +11,7 @@ constexpr uint64_t fileSize2 = fileSize - 16*512;
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
 volatile ByteRoundBuf rb;
-static const int rbSize = 4096;
+static const int rbSize = 8192;
 static unsigned char __attribute__((aligned(32))) rbBuf[rbSize];
 
 //  buffer for writing to file
@@ -32,13 +32,15 @@ enum LFState {
 	lfSError
 };
 
-LFState lfState = lfSInit;
+volatile LFState lfState = lfSInit;
+volatile static bool sdStarted = false;
 
 void lfPrint() {
-	xmprintf(0, "file %s: \tlfState=%d; lfWriting=%s; ffErrorCounter=%d; ffOverflowCounter=%d; rb.overflow=%d; rb.error=%d      \r\n", 
+	xmprintf(0, "file %s: \tlfState=%d; lfWriting=%s; ffErrorCounter=%d; ffOverflowCounter=%d; rb.overflow=%d; rb.error=%d; sdStarted=%s      \r\n", 
 		fileNameCopy, (int)(lfState), lfWriting?"yes":"no", 
 		ffErrorCounter, ffOverflowCounter,
-		rb.overflowCount, rb.errorCount	
+		rb.overflowCount, rb.errorCount,
+		sdStarted?"yes":"no"	
 	);
 }
 
@@ -54,15 +56,30 @@ void lfInit() {
 
 	if (!sd.begin(SD_CONFIG)) {
     	//sd.initErrorHalt(&Serial);
+		xmprintf(0, "cannot start CD card (no card in slot?)\r\n");
 		lfState = lfSError;
-  	}
-	lfState = lfSGood;
+		sdStarted = false;
+  	} else {
+		sdStarted = true;
+		lfState = lfSGood;
+		xmprintf(0, "sd card started \r\n");
+	}
 }
 
 void lfStart(const char* fileName) {
-	if ((lfState != lfSGood) || lfWriting) { // already
+	xmprintf(0, "lfStart %s \r\n", fileName);
+	if (lfWriting) { // already
+		xmprintf(0, "writing %s already \r\n", fileNameCopy);
 		return;
 	}
+	if (!sdStarted) { //  try to start?
+		lfInit();
+		if (!sdStarted) {
+			xmprintf(0, "cannot2 start CD card (no card in slot?)\r\n");
+			return;
+		}
+	}
+
 	strncpy(fileNameCopy, fileName, 64);
 	fileCounter = 0;
 	fileBytesCounter = 0LL;
@@ -77,19 +94,31 @@ void lfStart(const char* fileName) {
 	if (!file.open(fileName, O_CREAT | O_TRUNC | O_WRONLY)) {
 		//sd.errorHalt("file.open failed");
 		lfState = lfSError;
+		xmprintf(0, "cannot open file %s for writing \r\n", fileName);
 		return;
 	}
 	if (!file.preAllocate(fileSize)) {
 		//sd.errorHalt("file.preAllocate failed");
 		lfState = lfSError;
+		xmprintf(0, "cannot preallocate space for log file; card full?\r\n");
 		return;
 	}
 	lfWriting = true;
+	lfState = lfSGood;
 	xmprintf(0, "log started\r\n");
 }
 
 void lfStop() {
-	if ((lfState != lfSGood) || (!lfWriting)) { 
+	if (!lfWriting) {
+		xmprintf(0, "not writing now \r\n");
+	}
+	if (!sdStarted) {
+		xmprintf(0, "sd card didnt started \r\n");
+		return;
+	}
+
+	if (lfState != lfSGood){ 
+		xmprintf(0, "state not good \r\n");
 		return;
 	}
 	int n, bs;

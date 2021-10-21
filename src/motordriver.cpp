@@ -51,10 +51,9 @@ constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< spe
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
 PID::PID() {
-	P = 0.16f;
+	P = 0.25f;
 	I = 0.5f;
-	D = 0.00f;
-	
+	D = 0.016f;
 	eInt = 0.0f;
 	ms = 0;
 	error = 0.0f;
@@ -137,7 +136,7 @@ void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
 
 
 Motor::Motor() {
-	mmode = mLinear; // mLinear; // mAngle
+	mmode = mAngle; // mLinear; // mAngle
 	changeAngleFlag = 0;
 	targetEnc = 0;
 	mc_e = 0.0;
