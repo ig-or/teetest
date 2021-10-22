@@ -32,7 +32,7 @@ struct PID {
 	float error;
 	float ret;
 	unsigned int ms;   //   when we called 'u' last time [ms]
-	float smallError;
+	float smallError, mediumError;
 	PID();
 	float u(float error_, float errorSpeed, unsigned int ms_);
 	void pPrint();

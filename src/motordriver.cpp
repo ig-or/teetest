@@ -41,25 +41,27 @@ int analogRead(int pin) {return 0;}
 const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
 constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
-constexpr int mdProcessRate = 2; // [ms]
-constexpr int encReadRate = 10; // [ms]
+constexpr int mdProcessRate = 1; // [ms]
+constexpr int encReadRate = 1; // [ms]
 constexpr float fEncReadRate = float(encReadRate) * 0.001f;
 const int encNumber = 1920; ///< impulses per revolution
 constexpr float encTicks2Radians = TWO * pii / float(encNumber);
-constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< speed = dFi * encSpeed1
+//constexpr float encSpeed1 = 2.0f*pii*1000.0f/(encNumber * encReadRate); ///< speed = dFi * encSpeed1
+constexpr float simpleEncSpeedK = (encTicks2Radians * 1000.0f) / encReadRate;
 
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
 PID::PID() {
-	P = 0.25f;
-	I = 0.5f;
-	D = 0.016f;
+	P = 0.8f;
+	I = 1.0f;
+	D = 0.035f;
 	eInt = 0.0f;
 	ms = 0;
 	error = 0.0f;
 	ret = 0.0f;
 
 	smallError = 2.0f*encTicks2Radians;
+	mediumError = 0.4; // radians
 }
 
 float PID::u(float error_, float errorSpeed, unsigned int ms_){  //   FIXME: time rollover
@@ -71,7 +73,9 @@ float PID::u(float error_, float errorSpeed, unsigned int ms_){  //   FIXME: tim
 		if (ms == 0) { // init
 			eInt = 0.0f;
 		} else {
-			eInt += (error + error_) * 0.5f * (ms_ - ms) / 1000.0f;
+			if (mError <= mediumError) {
+				eInt += (error + error_) * 0.5f * (ms_ - ms) / 1000.0f;
+			}
 		}
 		ret = P * error + I * eInt - errorSpeed * D;
 	}
@@ -191,15 +195,15 @@ void Motor::updateEncSpeed() {
 			encSpeed = encSpeed;
 			break;
 		case 1: 
-			encSpeedSimple = (encBuf.x[0]) * encSpeed1;
+			encSpeedSimple = (encBuf.x[0]) * simpleEncSpeedK;
 			encSpeed = encSpeed;
 			break;
 		case 2:
-			encSpeedSimple = (encBuf.x[1] - encBuf.x[0]) * encSpeed1;  
+			encSpeedSimple = (encBuf.x[1] - encBuf.x[0]) * simpleEncSpeedK;  
 			encSpeed = encSpeed;
 			break;
 		case 3: 
-			encSpeedSimple = (encBuf.x[2] - encBuf.x[1]) * encSpeed1;  
+			encSpeedSimple = (encBuf.x[2] - encBuf.x[1]) * simpleEncSpeedK;  
 			encSpeed = encSpeed;
 			break;
 		default: {  //   FIXME: handle rollover here; what is rollover policy on encoder side?
@@ -207,17 +211,17 @@ void Motor::updateEncSpeed() {
 			for (int i = 0; i < n; i++) { // FIXME: start counting from 1
 				encDataBuf[i] = (encBuf.x[i] - encBuf.x[0]) * encTicks2Radians;
 			}
-			if (abs(encDataBuf[n - 1]) > 18) { //  if we have some rotation angle inside the buffer
+			//if (abs(encDataBuf[n - 1]) > 18) { //  if we have some rotation angle inside the buffer
 				parabola_appr(encTimeBuf, encDataBuf, n, abc); // calculate 'abc'
 				// current time is    encTimeBuf[n - 1]
 				encSpeed = 2.0f * abc[0] * encTimeBuf[n - 1] + abc[1];
-			}
-			else {
-				linear_appr(encTimeBuf, encDataBuf, n, abc); // calculate 'ab'
-				encSpeed = abc[0];
-			}
+			//}
+			//else {
+			//	linear_appr(encTimeBuf, encDataBuf, n, abc); // calculate 'ab'
+			//	encSpeed = abc[0];
+			//}
 
-			encSpeedSimple = float(encBuf.x[n-1] - encBuf.x[n-2]) * (encTicks2Radians * 1000.0f) / encReadRate;
+			encSpeedSimple = float(encBuf.x[n-1] - encBuf.x[n-2]) * simpleEncSpeedK;
 		}
 	}
 }
