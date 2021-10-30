@@ -2,6 +2,14 @@
 */
 #pragma once
 
+extern volatile bool lfWriting; ///< true if writing the log file right now
+enum LFState {
+	lfSInit,
+	lfSGood,
+	lfSError
+};
+extern volatile LFState lfState; ///< lfSGood if SD state is good
+
 ///  init log file
 void lfInit();
 /**   start log to file 

@@ -14,13 +14,13 @@
 
 //#include "EventResponder.h"
 
-void event100ms() {
+void event100ms() {  //   call this 10 Hz
 	irProces();
 }
-void event250ms() {
+void event250ms() {	  //  call this 4  Hz
 	h_usb_serial();	
 }
-void event1s() {
+void event1s() {   //  call this 1 Hz
 
 }
 
@@ -32,16 +32,9 @@ void imuInfo(const xqm::ImuData& imu) {
 	axSmoothCounter++;
 }
 
-//volatile unsigned int msCounter = 0;
-
-
 extern "C" int main(void) {
-  // initialize the digital pin as an output.
 	ttSetup();
 	imuAX.pfInit(ca3_25_100, cb3_25_100);
-
-	//const int incomingUsbSerialInfoSize = 32;
-	//char incomingUsbSerialInfo[incomingUsbSerialInfoSize];
 
 	msNow = millis();
 	uint32_t fast100msPingTime = msNow;

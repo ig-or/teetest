@@ -26,11 +26,6 @@ volatile bool lfWriting = false;
 int fileCounter = 0;
 unsigned long long fileBytesCounter = 0LL;
 char fileNameCopy[64];
-enum LFState {
-	lfSInit,
-	lfSGood,
-	lfSError
-};
 
 volatile LFState lfState = lfSInit;
 volatile static bool sdStarted = false;
@@ -173,16 +168,24 @@ void lfFeed(void* data, int size) {
 
 
 #define  headerSize (sizeof(xqm::MsgHeader))
-static volatile unsigned char counter = 0;
+static volatile unsigned char counter = 0;  // log file message counter
+
+/** THIS FUNCTION BELOW  SHOULD BE REENTRANT!!!!
+ *  It is called simultaneosly from different interupt levels
+ * */
 int lfSendMessage(const unsigned char* data, unsigned char type, unsigned short int size) {
-	if ((lfState != lfSGood) || (!lfWriting)) { 
+	// IS IT OK TO USE STATIC VARIABLES BELOW?
+	if ((!sdStarted) || (lfState != lfSGood) || (!lfWriting)) { 
 		return;
 	}
 	xqm::MsgHeader hdr;
 	int ret = size + headerSize + 2;  //  size of all the message
 	unsigned char cr[2];
 	unsigned char crc = 0;
-	unsigned char counterCopy = counter;
+	unsigned char counterCopy = counter; //  COUNTER MAY BE NOT CORRECT !!!!
+	// the solution could be to move counter read/increment inside interrupt disable block,
+	// but this is not good since we have to disable interrupts for longer time..
+	// TODO: create better solution
 
 	// create message header
 	hdr.hdr[0] = 'X'; hdr.hdr[1] = 'M'; hdr.hdr[2] = 'R'; hdr.hdr[3] = ' ';
@@ -201,10 +204,10 @@ int lfSendMessage(const unsigned char* data, unsigned char type, unsigned short 
 		enableInterrupts(irq);
 		return 0;
 	}
-	put_rb_s(&rb, (const unsigned char*)(&hdr), headerSize); 
-	put_rb_s(&rb, data, size); 
-	put_rb_s(&rb, cr, 2); 
-	counter+=1;
+	put_rb_s(&rb, (const unsigned char*)(&hdr), headerSize); 	// add header
+	put_rb_s(&rb, data, size); 									// add message body
+	put_rb_s(&rb, cr, 2); 										// add message tail
+	++counter;
 	enableInterrupts(irq);
 	// ***************************************************************
 	return ret;

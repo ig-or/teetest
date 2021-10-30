@@ -41,8 +41,8 @@ int analogRead(int pin) {return 0;}
 const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
 constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
-constexpr int mdProcessRate = 1; // [ms]
-constexpr int encReadRate = 1; // [ms]
+constexpr int mdProcessRate = 2; // [ms]
+constexpr int encReadRate = 2; // [ms]
 constexpr float fEncReadRate = float(encReadRate) * 0.001f;
 const int encNumber = 1920; ///< impulses per revolution
 constexpr float encTicks2Radians = TWO * pii / float(encNumber);
@@ -52,9 +52,9 @@ constexpr float simpleEncSpeedK = (encTicks2Radians * 1000.0f) / encReadRate;
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
 
 PID::PID() {
-	P = 0.8f;
+	P = 0.1f;
 	I = 1.0f;
-	D = 0.035f;
+	D = 0.01f;
 	eInt = 0.0f;
 	ms = 0;
 	error = 0.0f;
@@ -140,7 +140,7 @@ void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
 
 
 Motor::Motor() {
-	mmode = mAngle; // mLinear; // mAngle
+	mmode = mLinear; // mLinear; // mAngle
 	changeAngleFlag = 0;
 	targetEnc = 0;
 	mc_e = 0.0;
@@ -234,7 +234,7 @@ void Motor::processOutput(unsigned int ms) {
 	}
 	if (fCurrent > 4000) {
 		bigCurrentFlag = 1;
-		mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
+		//mcp.mcUpdate(mcp.fSpeed *0.9, ms, false);
 		++bigCurrentCounter;
 	} else {
 		bigCurrentFlag = 0;
@@ -326,17 +326,17 @@ void Motor::mProcess(unsigned int ms) {
 		encPos  = 0;
 #endif
 		if (!invDir) {  // invert encoder measurements also
-			encPos = -encPos;
+			encPos = -encPos; // FIXME: something is wrong
 		}
 
-		encBuf.rAdd(encPos);
+		encBuf.rAdd(encPos); //  this could take some time..
 		updateEncSpeed();
 
 		if (changeAngleFlag != 0) {  //   target angle change
 			changeAngleFlag = 0;
 
 			targetEnc =  encPos + df / encTicks2Radians;
-			xmprintf(0, "dEnc = %d \r\n", df / encTicks2Radians);
+			//xmprintf(0, "dEnc = %d \r\n", df / encTicks2Radians);
 		}
 	}
 
@@ -395,11 +395,7 @@ void Motor::mSetup(int id_) {
 #endif
 }
 
-
-
-
 Motor m[2];
-
 
 //void setMotorParams(int index, float mSpeed) {
 //	m[index].mcp.mcUpdate(mSpeed);
@@ -425,14 +421,15 @@ void mdStop() {
 	m[1].mStop();
 }
 
-xqm::TeeMotor mInfo[2];
+static xqm::TeeMotor mInfo[2];
 #ifndef PCTEST
 void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();
 	m[0].mProcess(ms);
 	m[1].mProcess(ms);
 
-	/*char stmp[32];
+	/*  test log file
+	char stmp[32];
 	int test = snprintf(stmp, 32, "%u\t%d\t%d\n", 
 		ms, 
 		floor((m[0].current - m[0].currentOffset) * a2ma),
@@ -443,23 +440,29 @@ void mdProcess(EventResponderRef r) {
 		lfFeed(stmp, test+1);
 	}
 	*/
-	for (int i = 0; i < 2; i++) {
-		mInfo[i].timestamp = ms;
-		mInfo[i].id = m[i].id;
-		mInfo[i].e = m[i].mc_e;
-		mInfo[i].pid_eInt = m[i].pid.eInt;
-		mInfo[i].u = m[i].mc_u;
 
-		mInfo[i].enc = m[i].encPos;
-		mInfo[i].targetEnc = m[i].targetEnc;
-		mInfo[i].encSpeed = m[i].encSpeed;
-		mInfo[i].encSpeedSimple = m[i].encSpeedSimple;
+	if ((lfState == lfSGood) && lfWriting) {
+		if ((m[0].processCounter % mdProcessRate) == 0) { //    only if motor state changed
+			for (int i = 0; i < 2; i++) {
+				mInfo[i].timestamp = ms;
+				mInfo[i].id = m[i].id;
+				mInfo[i].e = m[i].mc_e;
+				mInfo[i].pid_eInt = m[i].pid.eInt;
+				mInfo[i].u = m[i].mc_u;
 
-		lfSendMessage(&(mInfo[i]));
+				mInfo[i].enc = m[i].encPos;
+				mInfo[i].targetEnc = m[i].targetEnc;
+				mInfo[i].encSpeed = m[i].encSpeed;
+				mInfo[i].encSpeedSimple = m[i].encSpeedSimple;
+
+				lfSendMessage(&(mInfo[i]));
+			}
+		}
 	}
 	
 }
 #endif
+
 void mdPrint() {
 	m[0].print();
 	m[1].print();
@@ -470,24 +473,26 @@ MillisTimer mt;
 IntervalTimer iTimer;
 #endif
 
-//char //[32];
-xqm::TeeCurrent tcu;
+static xqm::TeeCurrent tcu;
 void onCurrent() {
 	unsigned int mks = micros();
 	m[0].current = analogRead(m[0].csPin);
 	m[1].current = analogRead(m[1].csPin);
 
+	//  test log file
 	//int bs = snprintf(curTmp, 32, "%u\t%d\t%d\n", mks, m[0].current, m[1].current);
 	//if ((bs > 0) && (bs < 32)) {
 	//		lfFeed(curTmp, bs+1);
 	//	}
 
-	tcu.timestamp= mks;
-	tcu.cu[0] = m[0].current;
-	tcu.cu[1] = m[1].current;
-	lfSendMessage(&tcu);
+	if ((lfState == lfSGood) && lfWriting) {
+		//  binary log file; fill in tcu struct
+		tcu.timestamp= mks;		// just microseconds
+		tcu.cu[0] = m[0].current;
+		tcu.cu[1] = m[1].current;
+		lfSendMessage(&tcu);
+	}
 }
-
 
 int mdSetup() {
 	m[0].setPins(m1pwm, m1dir, m1slp, m1flt, m1cs);
@@ -502,10 +507,10 @@ int mdSetup() {
 	// setup an interrupt for  'mdProcess'
 #ifndef PCTEST	
 	er.attachInterrupt(mdProcess);
-	mt.beginRepeating(1, er);
+	mt.beginRepeating(1, er);    //   run mdProcess  1 kHz
 #endif
 	iTimer.priority(145);
-	iTimer.begin(onCurrent, 100);
+	iTimer.begin(onCurrent, 200);	//  run onCurrent  5 kHz
 	return 0;
 }
 

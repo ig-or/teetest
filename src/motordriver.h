@@ -69,7 +69,7 @@ struct Motor {
 	Encoder enc; 
 #endif
 	volatile long encPos;
-	static const int encBufSize = 10;
+	static const int encBufSize = 5;
 	//XMRoundBuf<int, encBufSize> encBuf;
 	NativeRoundBuf<int, encBufSize> encBuf;
 	float encTimeBuf[encBufSize]; ///< encoder time in seconds, starting from zero
@@ -94,8 +94,8 @@ struct Motor {
 	static const int calibrationTime = 100; // ms
 
 	//float targetAngle;
-	float df;
-	int changeAngleFlag;
+	volatile float df;
+	volatile int changeAngleFlag;
 	int targetEnc;
 	float mc_e, mc_u;
 
