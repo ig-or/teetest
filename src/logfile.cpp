@@ -11,7 +11,7 @@ constexpr uint64_t fileSize2 = fileSize - 16*512;
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
 volatile ByteRoundBuf rb;
-static const int rbSize = 8192;
+static const int rbSize = 4096; //8192;
 static unsigned char __attribute__((aligned(32))) rbBuf[rbSize];
 
 //  buffer for writing to file

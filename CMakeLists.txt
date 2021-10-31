@@ -51,15 +51,17 @@ add_definitions(-DOURPROJECTNAME=${PROJECT_NAME}) # -DENCODER_USE_INTERRUPTS -DE
 #add_definitions(-DNOMINMAX)
 add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS -DUSE_IMU_INDEX=1 -DXMPRINTF_TO_FILE)
 
+add_definitions(-DLWIP_PROVIDE_ERRNO=1 -DLWIP_IPV4=1) # for QNEthernet
+
 set(ourGroupNames)
-SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
-SUBDIRLIST(arduino_libs ${CMAKE_SOURCE_DIR}/arduino)
+#SUBDIRLIST(pjrc_libs ${CMAKE_SOURCE_DIR}/pjrc/libraries)
+#SUBDIRLIST(arduino_libs ${CMAKE_SOURCE_DIR}/arduino)
 set (foldersList  
 	test/blink 
 	src
 	pjrc/teensy4 
-	${pjrc_libs}
-	${arduino_libs}
+	${CMAKE_SOURCE_DIR}/pjrc/libraries
+#	${arduino_libs}
 ) #  pjrc/teensy)
 
 #set(INC_DIR_LIST ${COREPATH}) # C:/programs/teensy/tools/arm/arm-none-eabi/include)
@@ -83,12 +85,14 @@ addSourceFiles(core "${xqt}/message/src"
 )
 
 # add all the libraries:
-set(libFoldersList)
-SUBDIRLIST(libFoldersList ${cdir}/libraries) # 
-FOREACH(i ${libFoldersList})
-	message(STATUS "adding library folder ${i}")
-	addSourceFiles0(library ${i})
-ENDFOREACH()
+#set(libFoldersList)
+#SBDIRLIST(libFoldersList ${cdir}/libraries) # 
+#FOREACH(i ${libFoldersList})
+#	message(STATUS "adding library folder ${i}")
+#	addSourceFiles0(library ${i})
+#ENDFOREACH()
+
+#addSourceFiles0(library ${cdir}/libraries)
 
 #message(STATUS "ourGroupNames = " ${ourGroupNames}) 
 

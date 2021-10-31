@@ -30,7 +30,7 @@ set(LIBS   "-larm_cortexM7lfsp_math -lm -lstdc++" )
 #set (LDFLAGS " -Os -Wl,--gc-sections -mthumb ") # -LC:/programs/teensy/tools/arm/arm-none-eabi/lib")
 set(LDSCRIPT  "\"${COREPATH}/${MCU_LD}\"")
 #set (LDFLAGS " -O2 -Wl,--gc-sections,--relax ${SPECS} ${CPUOPTIONS} -T${LDSCRIPT} ")
-set (LDFLAGS "-Os -Wl,--gc-sections,--relax -T${LDSCRIPT} ${LIBS}") # -fPIC
+set (LDFLAGS "-Os -Wl,--gc-sections,--relax -T${LDSCRIPT} ${LIBS} ") # -fPIC
 #set (LDFLAGS "${LDFLAGS} \"-L${gcc_path}/lib/gcc/arm-none-eabi/10.3.1/thumb/v7e-m+fp/hard\"")
 #set (LDFLAGS "${LDFLAGS} \"-L${gcc_path}/arm-none-eabi/lib/thumb/v7e-m+fp/hard\"")
 set (LDFLAGS "${LDFLAGS} \"-L${atools}/arm/arm-none-eabi/lib/armv7e-m/fpu/fpv5-d16\"")
