@@ -9,6 +9,7 @@
 #include "memsic.h"
 #include "ir.h"
 #include "logfile.h"
+#include "eth.h"
 
 #include "xmfilter.h"
 
@@ -100,6 +101,8 @@ extern "C" int main(void) {
 		}
 
 		lfProcess();
+		ethLoop();
+
 
 		if (msNow > (fast100msPingTime + 100)) {
 			fast100msPingTime = msNow;

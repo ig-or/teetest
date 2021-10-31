@@ -6,6 +6,7 @@
 #include "ir.h"
 #include "teetools.h"
 #include "memsic.h"
+#include "eth.h"
 #include "logfile.h"
 
 int ttSetup() {
@@ -18,6 +19,7 @@ int ttSetup() {
 	analogWriteResolution(pwmResolution);
     analogReadResolution(adcResolution);
 	lfInit();  //  SD log file init; will set up sdStarted = true; if SD card present
+	ethSetup();
 
     mdSetup(); // motor driver setup
 	irSetup(); // IR receiver setup
