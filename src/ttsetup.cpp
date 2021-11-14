@@ -8,6 +8,7 @@
 #include "memsic.h"
 #include "eth.h"
 #include "logfile.h"
+#include "imu_alg.h"
 
 int ttSetup() {
 	pinMode(imuPwrPin, OUTPUT);
@@ -35,6 +36,7 @@ int ttSetup() {
 	setupMemsic_2();
 	digitalWriteFast(imuPwrPin, HIGH); // turn on IMU
 	delay(500);
+	imuAlgInit();
 	setupMemsic_3(100);
 	
 	return 0;

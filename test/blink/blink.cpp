@@ -12,6 +12,7 @@
 #include "eth.h"
 
 #include "xmfilter.h"
+#include "imu_alg.h"
 
 //#include "EventResponder.h"
 
@@ -29,6 +30,8 @@ PolyFilter<3> imuAX;
 float axSmoothed = 0.0f;
 int axSmoothCounter = 0;
 void imuInfo(const xqm::ImuData& imu) {
+	imuAlgFeed(imu);
+
 	axSmoothed = imuAX.pfNext(imu.a[0]) / 12.0f;
 	axSmoothCounter++;
 }
