@@ -36,8 +36,9 @@ int ttSetup() {
 	setupMemsic_2();
 	digitalWriteFast(imuPwrPin, HIGH); // turn on IMU
 	delay(500);
-	imuAlgInit();
+	
 	setupMemsic_3(100);
+	imuAlgInit();
 	
 	return 0;
 }

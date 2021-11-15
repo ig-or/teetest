@@ -52,7 +52,7 @@ add_definitions(-DOURPROJECTNAME=${PROJECT_NAME}) # -DENCODER_USE_INTERRUPTS -DE
 add_definitions(-DUSE_SINGLE__PRECISION_NUMBERS -DUSE_IMU_INDEX=1 -DXMPRINTF_TO_FILE)
 
 add_definitions(-DLWIP_PROVIDE_ERRNO=1 -DLWIP_IPV4=1) # for QNEthernet
-add_compile_options(" -std=c++14 ")
+add_compile_options( -std=c++14 )
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
 
 set(ourGroupNames)
