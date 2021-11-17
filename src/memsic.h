@@ -22,6 +22,12 @@ void setupMemsic_3(int dataRate); ///<  main setup
 void memsicPrint();
 void memsicTest(const char* name = 0);
 void memsicStop();
+
+/**
+ * call this function periodically in low level priority,
+ * to process all the IMU measurements.
+ * \param cb callback function, will be called for every IMU measurement
+ * */
 void processMemsicData(void (*cb)(const xqm::ImuData& imu) = nullptr);
 int getMemsicSerialNumber();
 

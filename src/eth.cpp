@@ -4,6 +4,7 @@
 
 #include "eth.h"
 #include "teetools.h"
+#include "cmdhandler.h"
 
 enum EthStatus
 {
@@ -25,7 +26,8 @@ IPAddress ip(192, 168, 0, 177);
 unsigned int localPort = 8888; // local port to listen on
 
 // buffers for receiving and sending data
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; // buffer to hold incoming packet,
+const int maxUdpSize = 512;
+char packetBuffer[maxUdpSize]; // buffer to hold incoming packet,
 char ReplyBuffer[] = "acknowledged\r\n";	   // a string to send back
 
 // An EthernetUDP instance to let us send and receive packets over UDP
@@ -78,10 +80,13 @@ void ethLoop() {
 		IPAddress ra = udp.remoteIP();
 		uint16_t rp = udp.remotePort();
 		// read the packet into packetBufffer
-		udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-		packetBuffer[UDP_TX_PACKET_MAX_SIZE-1] = 0;
+		int bs = udp.read(packetBuffer, maxUdpSize);
+		if (bs >= maxUdpSize) {
+			bs = maxUdpSize-1;
+		}
+		packetBuffer[bs] = 0;  //  put zero AFTER the message
 		xmprintf(0, "ETH got %d bytes from %d.%d.%d.%d port %d (%s)\r\n",
-			packetSize,
+			bs,
 			ra[0], 	ra[1], ra[2], ra[3],
 			rp,
 			packetBuffer
@@ -91,6 +96,10 @@ void ethLoop() {
 		udp.beginPacket(ra, rp);
 		udp.write(ReplyBuffer);
 		udp.endPacket();
+
+		if ((bs > 0) && (packetBuffer[0] == '@')) {
+			processTheCommand(packetBuffer + 1); // process the command
+		}
   	} 
 	  
 	unsigned int ms = millis();

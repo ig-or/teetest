@@ -175,6 +175,7 @@ static volatile unsigned char counter = 0;  // log file message counter
  * */
 int lfSendMessage(const unsigned char* data, unsigned char type, unsigned short int size) {
 	// IS IT OK TO USE STATIC VARIABLES BELOW?
+	// 
 	if ((!sdStarted) || (lfState != lfSGood) || (!lfWriting)) { 
 		return;
 	}

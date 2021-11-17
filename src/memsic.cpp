@@ -37,9 +37,9 @@
 // FIXME: do the recalibration of the biases and scale factors for every unit
 #define G (9.81192f) // for the units that are calibrated in San Jose, the local field is 9.81192
 
-static const int accRange = 8;   ///<  +- 8G
+static const int accRange = 8;   ///<  +- 8G TODO: consider using lower range, like 4G
 static XMType accScale = G / 4096.0f; ///<  this will change during the setup
-static const XMType gyroScale = pii / (200.0f * 180.0f);
+static const XMType gyroScale = pii / (200.0f * 180.0f); ///    assume gyro range is 200 degrees/second maximum
 static int memsicDataRate = 200;
 static int16_t memsicSerialNumber = 0;
 
@@ -595,7 +595,7 @@ void processMemsicData(void (*cb)(const xqm::ImuData& imu)) {
 	while (check) {
 		//__disable_irq();
 		bool irq = disableInterrupts();
-		if (hInfoRB1.get(&memsicInfo1)) {
+		if (hInfoRB1.get(&memsicInfo1)) { //  in case we have some new info
 			//__enable_irq();
 			enableInterrupts(irq);
 			pc++;

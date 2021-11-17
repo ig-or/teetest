@@ -30,6 +30,7 @@ PolyFilter<3> imuAX;
 float axSmoothed = 0.0f;
 int axSmoothCounter = 0;
 void imuInfo(const xqm::ImuData& imu) {
+	lfSendMessage(imu);			//  put IMU measurement to the log file
 	imuAlgFeed(imu);
 
 	axSmoothed = imuAX.pfNext(imu.a[0]) / 12.0f;
@@ -77,24 +78,9 @@ extern "C" int main(void) {
 		if ( p > mpw) {
 			  p = mpw;
 		}
-		//if (msNow - hsTime > hsPeriod) {
-		//	hsTime = msNow;
-		//	uint8_t flt = digitalReadFast(m2flt);
-//
-			//usb_serial_write("md flt=%d\r\n", 9);
-		//	xmprintf(0, "md flt=%d\r\n", flt);
-		//}
-		
-		//digitalWriteFast(13, HIGH);
-		//delay(1000);
-		//digitalWriteFast(13, LOW);
-		//delay(1000);
-
 
 		analogWrite(ledPin, p);
 		analogWrite(led1_pin, p >> 4);
-		//digitalWriteFast(led1_pin, HIGH);
-		//mdProcess();
 
 		delay(2);
 		axSmoothCounter = 0;
@@ -103,9 +89,8 @@ extern "C" int main(void) {
 			setMSpeed(axSmoothed, axSmoothed);
 		}
 
-		lfProcess();
-		ethLoop();
-
+		ethLoop();		//  ethernet
+		lfProcess();  	//  log file
 
 		if (msNow > (fast100msPingTime + 100)) {
 			fast100msPingTime = msNow;
