@@ -43,7 +43,6 @@ void irSetup() {
 		ciTime[i] = 0;
 	}
 	irrecv.enableIRIn(); // Start the receiver
-
 }
 
 void irProces() {

@@ -297,7 +297,7 @@ void memsicTest(const char* name) {
 void setupMemsic_1() {
 	memsicStatus = -1;
 	memsicDataready = 0;
-	hInfoRB1.empty();
+	hInfoRB1.clear();
 	memsicResponder.attachInterrupt(erFunction); // attachImmediate // attachInterrupt
 	memsicInfo.status = 100;  //  not valid
 
@@ -368,14 +368,15 @@ void setupMemsic_3(int dataRate) {
 	tstype t11 = millis(), dt = 99999;
 	while ((memsicStatus == 0) && ((dt = (millis() - t11)) < 1850)) {
 		delay(1);
+		yield();
 	}
 	if (memsicStatus == 0) {
 		xmprintf(0, " .. \tMEMSIC IMU setup timeout\n");
 		return;
 	}
 
-	xmprintf(4, "   .. started! (in %d ms); dataRcounter=%u; memsicStatus=%d\r\n", 
-		dt, dataRcounter, memsicStatus);
+	xmprintf(4, " [%d]   .. started! (in %d ms); dataRcounter=%u; memsicStatus=%d\r\n", 
+		memsicStatus, dt, dataRcounter, memsicStatus);
    
 	// initialize memsicSPI:
 	memsicSPI.begin();

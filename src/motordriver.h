@@ -32,7 +32,7 @@ struct PID {
 	float error;
 	float ret;
 	unsigned int ms;   //   when we called 'u' last time [ms]
-	float smallError;
+	float smallError, mediumError;
 	PID();
 	float u(float error_, float errorSpeed, unsigned int ms_);
 	void pPrint();
@@ -69,7 +69,7 @@ struct Motor {
 	Encoder enc; 
 #endif
 	volatile long encPos;
-	static const int encBufSize = 10;
+	static const int encBufSize = 5;
 	//XMRoundBuf<int, encBufSize> encBuf;
 	NativeRoundBuf<int, encBufSize> encBuf;
 	float encTimeBuf[encBufSize]; ///< encoder time in seconds, starting from zero
@@ -94,8 +94,8 @@ struct Motor {
 	static const int calibrationTime = 100; // ms
 
 	//float targetAngle;
-	float df;
-	int changeAngleFlag;
+	volatile float df;
+	volatile int changeAngleFlag;
 	int targetEnc;
 	float mc_e, mc_u;
 
@@ -106,8 +106,6 @@ struct Motor {
 	void print();
 
 	void updateEncSpeed();
-	void saveSettingsToFile
-
 
 	void processOutput(unsigned int ms);
 	void mProcess(unsigned int ms);
