@@ -7,6 +7,7 @@
 #include "teetools.h"
 #include "logfile.h"
 #include "robot.h"
+#include "SdFat.h"
 
 ImuAlgState iaState = iaInit;
 V3 a0, w0;
@@ -51,15 +52,27 @@ void endImuCalibration() {
 		lfStop();
 	}
 
-
+	FsFile f;
+	if (!f.open("ic.txt", O_CREAT | O_TRUNC | O_WRONLY)) { //  create a new file
+		xmprintf(0, "ERROR: cannot create a file ic.txt \r\n");
+		
+	} else {
+		char stmp[512];
+		int bs = snprintf(stmp, 512, "%.9f %.9f %.9f %.9f %.9f %.9f \r\n", 
+			ac[0], ac[1], ac[2], wc[0], wc[1], wc[2]);
+		f.write(stmp, bs);
+		f.sync();
+		f.close();
+		xmprintf(0, "endImuCalibration: %s", stmp);
+	}
 	if (wasLogging) {
 		lfStart();
 	}
-
 }
 
 void nextImuCalibration() {
 	if (rState != rsImuCalibrate) {
+		xmprintf(0, "ERROR: nextImuCalibration: rState  = %d\r\n", rState);
 		return;
 	}
 	switch (icState) {
@@ -67,12 +80,16 @@ void nextImuCalibration() {
 			imuCounter = 0;
 			wm.reset(); am.reset();
 			icState = icRotation;
+			xmprintf(0, "nextImuCalibration: rotation \r\n");
 			break;
 		case icWaitStatic:
 			imuCounter = 0;
 			wm.reset(); am.reset();
 			icState = icStatic;
+			xmprintf(0, "nextImuCalibration: static \r\n");
 			break;
+		default:
+			xmprintf(0, "ERROR: nextImuCalibration: icState  = %d\r\n", icState);
 	};
 }
 
@@ -124,6 +141,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 						if (imuCounter > 100) {
 							wc = wm.average();
 							icState = icWaitStatic;
+							xmprintf(0, "imuAlgFeed: end of rotation \r\n");
 						}
 
 						break;
@@ -131,9 +149,11 @@ void imuAlgFeed(const xqm::ImuData& data) {
 					case icStatic:
 						a = imu.a;
 						am.add(a);
+						++imuCounter;
 						if (imuCounter > 100) {
 							ac = am.average();
 							icState = icComplete;
+							xmprintf(0, "imuAlgFeed: end of static \r\n");
 							endImuCalibration();
 							break;
 						}
