@@ -22,6 +22,7 @@ FsFile file;
 volatile int feedingFlag = 0;
 volatile int ffErrorCounter = 0;
 volatile int ffOverflowCounter = 0;
+int fileNumber = 0;
 volatile bool lfWriting = false;
 int fileCounter = 0;
 unsigned long long fileBytesCounter = 0LL;
@@ -40,6 +41,7 @@ void lfPrint() {
 }
 
 void lfInit() {
+	strncpy(fileNameCopy, "log.xq", 64);
 	bool irq = disableInterrupts();
 	initByteRoundBuf(&rb, rbBuf, rbSize);
 	feedingFlag = 0;
@@ -62,9 +64,8 @@ void lfInit() {
 }
 
 void lfStart(const char* fileName) {
-	xmprintf(0, "lfStart %s \r\n", fileName);
 	if (lfWriting) { // already
-		xmprintf(0, "writing %s already \r\n", fileNameCopy);
+		xmprintf(0, "writing file %s already \r\n", fileNameCopy);
 		return;
 	}
 	if (!sdStarted) { //  try to start?
@@ -74,8 +75,50 @@ void lfStart(const char* fileName) {
 			return;
 		}
 	}
+	mxat(lfState == lfSGood);
 
-	strncpy(fileNameCopy, fileName, 64);
+	if (fileName == nullptr) { //   create a file name and put it into fileNameCopy
+		char stmp[64];
+		int bs;
+		if (!file.open("fn.txt", O_RDWR)) { //   no file number
+			if (!file.open("fn.txt", O_CREAT | O_TRUNC | O_WRONLY)) { //  create a new file
+				xmprintf(0, "ERROR: cannot create a file fn.txt \r\n");
+				lfState = lfSError;
+				return;
+			} else {
+				// file fn.txt is opened
+			}
+		} else { // file with file number opened
+			file.seek(0);
+			bs = file.fgets(stmp, 64);
+			if (bs < 1) { // bad file ?
+
+			} else { // we have something in a file
+				int k = sscanf(stmp, "%d", &fileNumber);
+				if (k != 1) { //  bad file format?
+
+				} else {
+					fileNumber += 1; // increase the file number here
+					xmprintf(0, "lfStart next file #%d\r\n", fileNumber);
+				}
+			}
+		}
+		// at this point fileNumber have the correct file number, and the file is open
+		// for writing
+		bs = sprintf(stmp, "%d\r\n", fileNumber);
+		file.truncate(0);
+		file.write(stmp, bs);
+		file.sync();
+		file.close();
+		sprintf(fileNameCopy, "log_%d.xq", fileNumber);
+
+	} else {
+		xmprintf(0, "lfStart! %s \r\n", fileName);
+		strncpy(fileNameCopy, fileName, 64);
+	}
+
+	logSetup(fileNameCopy);
+
 	fileCounter = 0;
 	fileBytesCounter = 0LL;
 
@@ -86,10 +129,10 @@ void lfStart(const char* fileName) {
 		ffOverflowCounter = 0;
 	enableInterrupts(irq);
 
-	if (!file.open(fileName, O_CREAT | O_TRUNC | O_WRONLY)) {
+	if (!file.open(fileNameCopy, O_CREAT | O_TRUNC | O_WRONLY)) {
 		//sd.errorHalt("file.open failed");
 		lfState = lfSError;
-		xmprintf(0, "cannot open file %s for writing \r\n", fileName);
+		xmprintf(0, "cannot open file %s for writing \r\n", fileNameCopy);
 		return;
 	}
 	if (!file.preAllocate(fileSize)) {

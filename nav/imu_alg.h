@@ -14,4 +14,6 @@ enum ImuAlgState {
 
 
 void imuAlgInit();
-void imuAlgFeed(const xqm::ImuData& imu);
+void imuAlgFeed(const xqm::ImuData& data);
+void startImuCalibration();
+void nextImuCalibration();

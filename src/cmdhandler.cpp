@@ -7,6 +7,7 @@
 #include "ttpins.h"
 #include "motordriver.h"
 #include "memsic.h"
+#include "imu_alg.h"
 #include "logfile.h"
 
 
@@ -93,7 +94,12 @@ int processTheCommand(const char* s, int size) {
 
 
 	if (strcmp(s, "setup") == 0) {
-		mdPrint();
+		//mdPrint();
+		startImuCalibration();
+		return 0;
+	}
+	if (strcmp(s, "enter") == 0) {		
+		nextImuCalibration();
 		return 0;
 	}
 
@@ -103,11 +109,11 @@ int processTheCommand(const char* s, int size) {
 	
 	if (strncmp(s, "log", 3) == 0) {
 		if (strlen(s) > 4) { //   use log file name
-			logSetup(s + 4);
+			//logSetup(s + 4);
 			lfStart(s + 4);
 		} else {
-			logSetup("log");
-			lfStart("log.xq");
+			//logSetup("log");
+			lfStart();
 		}
 	}
 	if (strcmp(s, "lstop") == 0) {

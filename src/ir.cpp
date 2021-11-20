@@ -60,6 +60,7 @@ void irProces() {
 			case SETUP: cIndex = 3; break;
 			case STOP: 	cIndex = 5; break;
 			case LEFT: 	cIndex = 6; break;
+			case ENTER: cIndex = 7; break;
 			case RIGHT:  cIndex = 8; break;
 			default: break;
 		}

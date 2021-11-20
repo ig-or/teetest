@@ -30,7 +30,7 @@ PolyFilter<3> imuAX;
 float axSmoothed = 0.0f;
 int axSmoothCounter = 0;
 void imuInfo(const xqm::ImuData& imu) {
-	lfSendMessage(imu);			//  put IMU measurement to the log file
+	lfSendMessage(&imu);			//  put IMU measurement to the log file
 	imuAlgFeed(imu);
 
 	axSmoothed = imuAX.pfNext(imu.a[0]) / 12.0f;
@@ -80,14 +80,14 @@ extern "C" int main(void) {
 		}
 
 		analogWrite(ledPin, p);
-		analogWrite(led1_pin, p >> 4);
+		//analogWrite(led1_pin, p >> 4);
 
 		delay(2);
 		axSmoothCounter = 0;
 		processMemsicData(imuInfo);
-		if (axSmoothCounter != 0) {
-			setMSpeed(axSmoothed, axSmoothed);
-		}
+		//if (axSmoothCounter != 0) {
+		//	setMSpeed(axSmoothed, axSmoothed);
+		//}
 
 		ethLoop();		//  ethernet
 		lfProcess();  	//  log file

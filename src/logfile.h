@@ -14,7 +14,7 @@ extern volatile LFState lfState; ///< lfSGood if SD state is good
 void lfInit();
 /**   start log to file 
  */ 
-void lfStart(const char* fileName);
+void lfStart(const char* fileName = nullptr);
 /// stop log
 void lfStop();
 

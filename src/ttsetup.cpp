@@ -39,6 +39,7 @@ int ttSetup() {
 	
 	setupMemsic_3(100);
 	imuAlgInit();
+	analogWrite(led1_pin, 0);
 	
 	return 0;
 }
