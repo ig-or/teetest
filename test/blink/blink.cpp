@@ -49,6 +49,7 @@ extern "C" int main(void) {
 
 	int mpw = maxPWM / 4.5;
 	
+	
 	//analogWriteFrequency(ledPin, 915.527);
 	int p = 0;
 	int phase;
@@ -80,7 +81,7 @@ extern "C" int main(void) {
 		}
 
 		analogWrite(ledPin, p);
-		//analogWrite(led1_pin, p >> 4);
+		analogWrite(led1_pin, led1.liGet(msNow));
 
 		delay(2);
 		axSmoothCounter = 0;

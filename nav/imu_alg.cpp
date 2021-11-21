@@ -39,6 +39,7 @@ void startImuCalibration() {
 	iaState = iaInit;
 	icState = icInit;
 	rState = rsImuCalibrate;
+	led1.liSetMode(LedIndication::LIRamp, 3.0f);
 
 }
 void endImuCalibration() {
@@ -80,12 +81,14 @@ void nextImuCalibration() {
 			imuCounter = 0;
 			wm.reset(); am.reset();
 			icState = icRotation;
+			led1.liSetMode(LedIndication::LIRamp, 3.0f);
 			xmprintf(0, "nextImuCalibration: rotation \r\n");
 			break;
 		case icWaitStatic:
 			imuCounter = 0;
 			wm.reset(); am.reset();
 			icState = icStatic;
+			led1.liSetMode(LedIndication::LIRamp, 3.0f);
 			xmprintf(0, "nextImuCalibration: static \r\n");
 			break;
 		default:
@@ -121,7 +124,10 @@ void imuAlgFeed(const xqm::ImuData& data) {
 			//}
 			iaState = iaGood;
 			switch(rState) {
-				case rsImuCalibrate: icState = icWaitRotation;  break;
+				case rsImuCalibrate: 
+					icState = icWaitRotation;  
+					led1.liSetMode(LedIndication::LIRamp, 1.0f);
+					break;
 
 			};
 		}
@@ -141,6 +147,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 						if (imuCounter > 100) {
 							wc = wm.average();
 							icState = icWaitStatic;
+							led1.liSetMode(LedIndication::LIRamp, 1.0f);
 							xmprintf(0, "imuAlgFeed: end of rotation \r\n");
 						}
 
@@ -155,6 +162,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 							icState = icComplete;
 							xmprintf(0, "imuAlgFeed: end of static \r\n");
 							endImuCalibration();
+							led1.liSetMode(LedIndication::LIStop, 1.0f);
 							break;
 						}
 						break;

@@ -17,6 +17,30 @@ constexpr float a2ma = 50 * 3300.0f / maxADC; // translation from adc reading in
 
 void logSetup(const char* fileName);
 
+struct LedIndication {
+	enum LIMode {
+		LIRamp,
+		LIStop
+	};
+	LIMode liMode = LIStop;
+	int period = 1000; ///< period in ms
+	int halfPeriod = 500;
+	static constexpr int maxPower = maxPWM * 0.8f;
+	float mph = maxPower / 500;
+	LedIndication();
+	/**
+	 *  \param m mode
+	 *  \param f frequency in Hz
+	 * */
+	void liSetMode(LIMode m, float f = 0.0);
+
+	/**
+	 * \return PWM value for the led
+	 * */
+	int liGet(unsigned int ms);
+};
+
+extern LedIndication led1;
 /*
 struct TTime {
 	uint32_t mks;
