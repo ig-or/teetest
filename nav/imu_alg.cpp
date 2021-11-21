@@ -9,9 +9,11 @@
 #include "robot.h"
 #include "SdFat.h"
 
+#include "motordriver.h"
+
 ImuAlgState iaState = iaInit;
 V3 a0, w0;
-unsigned int imuCounter = 0;
+unsigned int imuCounter = 0, globalImuCounter = 0;;
 
 const XMType maxStaticW = 0.05; // rad/sec 
 const XMType G = 9.815;  //  m/s^2
@@ -101,6 +103,7 @@ void endImuCalibration() {
 	mxat(icState == icComplete);
 
 	calibration();
+	rState = rsStop;
 
 	if ((lfState != lfSGood)) {
 		xmprintf(0, "ERROR: cannot end IMU calibration: lfState = %d \r\n", lfState );
@@ -158,6 +161,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 	XIMUData imu;
 	int i;
 	imu.idInit(data);
+	++globalImuCounter;
 
 	switch (iaState) {
 	case iaInit:
@@ -226,9 +230,48 @@ void imuAlgFeed(const xqm::ImuData& data) {
 						break;
 				};
 				break;
+			case rsPlay:
+				w = imu.w - w0;   
+				ws = w.length();
+				{
+					V3 gm = imu.a;
+					gm.normalize();
+					float pr = sp(gm, rXimu);
+					float q = pr * 4.1f;
+					setMSpeed(q, q);
+
+					if (globalImuCounter % 100 == 0) {
+						xmprintf(0, "pr = %f\r\n", pr);
+					}
+
+
+				}
+
+
+				break;
 		};
 
 
 		break;
 	};
+}
+
+
+void rStay() {
+	if (!haveImuCalibration) {
+		xmprintf(0, "need imu->robot calibration \r\n");
+		return;
+	}
+	if (rState != rsStop) {
+		xmprintf(0, "rState = %d \r\n", rState);
+	}
+
+	rState = rsPlay;
+	led1.liSetMode(LedIndication::LIRamp, 2.0f);
+}
+
+void rStop() {
+	rState = rsStop;
+	mdStop();
+	led1.liSetMode(LedIndication::LIStop, 1.0f);
 }

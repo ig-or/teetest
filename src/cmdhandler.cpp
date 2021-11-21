@@ -73,7 +73,8 @@ int processTheCommand(const char* s, int size) {
 	if (strcmp(s, "stop") == 0) {
 		//setMSpeed(0.0f, 0.0f);
 		//changeAngle(0.0f, 0.0f);
-		mdStop();
+		//mdStop();
+		rStop();
 		return 0;
 	}
 	if (strcmp(s, "left") == 0) {
@@ -102,6 +103,11 @@ int processTheCommand(const char* s, int size) {
 		nextImuCalibration();
 		return 0;
 	}
+	if (strcmp(s, "play") == 0) {		
+		rStay();
+		return 0;
+	}
+	
 
 	if (strcmp(s, "imu") == 0) {
 		memsicPrint();

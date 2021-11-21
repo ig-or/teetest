@@ -17,3 +17,6 @@ void imuAlgInit();
 void imuAlgFeed(const xqm::ImuData& data);
 void startImuCalibration();
 void nextImuCalibration();
+
+void rStay();
+void rStop();

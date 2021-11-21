@@ -2,5 +2,5 @@
 
 #include "robot.h"
 
-RState rState = rsInit;
+RState rState = rsStop;
 ICState icState = icInit;

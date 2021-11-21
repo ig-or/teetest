@@ -40,7 +40,7 @@ int analogRead(int pin) {return 0;}
 
 const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
-constexpr float accTime = 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
+constexpr float accTime = 50; // 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
 constexpr int mdProcessRate = 2; // [ms]
 constexpr int encReadRate = 2; // [ms]
 constexpr float fEncReadRate = float(encReadRate) * 0.001f;
