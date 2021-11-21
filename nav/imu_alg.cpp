@@ -18,15 +18,70 @@ const XMType G = 9.815;  //  m/s^2
 XMCov2<3> wm, am;
 V3 sWrms, sArms;
 V3 a, w;
+const char cfName[] = "irc.txt"; /// imu->robot calibration file name
 V3 ac, wc;  ///< for calibration
 XMType ws;
-constexpr double wrBound = 0.25*0.25; ///< for the calibration, will use only w^2 > wrBound
+constexpr double wrBound = 0.45*0.45; ///< for the calibration, will use only w^2 > wrBound
+
+V3 rYimu, rXimu, rZimu; ///< robot axis in IMU frame
+bool haveImuCalibration = false;
+
+void calibration() {
+	
+	V3 wc1 = wc;
+	V3 ac1 = ac;
+	wc1.normalize();
+	ac1.normalize();
+
+	rYimu = wc1;
+	rXimu = cross(ac1, wc1);
+	rZimu = cross(rXimu, rYimu);
+	haveImuCalibration = true;
+	xmprintf(0, "IMU->robot calibration processed\r\n");
+	xmprintf(0, "rx=[%.4f, %.4f, %.4f], ry=[%.4f, %.4f, %.4f], rz=[%.4f, %.4f, %.4f]\r\n",
+		rXimu[0], rXimu[1], rXimu[2], 
+		rYimu[0], rYimu[1], rYimu[2], 
+		rZimu[0], rZimu[1], rZimu[2]);
+}
 
 void imuAlgInit() {
 	iaState = iaInit;
 	imuCounter  = 0;
 	//IMatrix<2, 1> test = xmCov2Test();
 	//xmprintf(0, "xmCov2Test = [%f, %f] \r\n", test[0], test[1]);
+
+	//  try to read IMU calibration
+	if (lfState == lfSGood) {
+		bool writing = lfWriting;
+		if (writing) {
+			lfStop();
+		}
+		FsFile f;
+		if (!f.open(cfName)) { //  open a new file
+			xmprintf(0, "WARNING: cannot open file %s; no IMU->robot calibration \r\n", cfName);
+		} else {
+			char stmp[512];
+			int bs = f.fgets(stmp, 512);
+			if (bs < 5) {
+				xmprintf(0, "WARNING: error 1 in file %s; got (%s) \r\n", cfName, stmp);
+			} else {
+				//int k = sscanf(stmp, "%.9f %.9f %.9f %.9f %.9f %.9f", 
+				int k = sscanf(stmp, "%f %f %f %f %f %f", 
+					&(ac[0]), &(ac[1]), &(ac[2]), &(wc[0]), &(wc[1]), &(wc[2]));
+				if (k == 6) {
+					calibration();
+				} else {
+					xmprintf(0, "WARNING: bad file %s; k=%d; bs = %d; stmp = (%s) \r\n", 
+						cfName, k, bs, stmp);
+				}
+			}
+
+			f.close();
+		}
+		if (writing) {
+			lfStart();
+		}
+	}
 }
 
 void startImuCalibration() {
@@ -44,6 +99,9 @@ void startImuCalibration() {
 }
 void endImuCalibration() {
 	mxat(icState == icComplete);
+
+	calibration();
+
 	if ((lfState != lfSGood)) {
 		xmprintf(0, "ERROR: cannot end IMU calibration: lfState = %d \r\n", lfState );
 		return;
@@ -54,8 +112,8 @@ void endImuCalibration() {
 	}
 
 	FsFile f;
-	if (!f.open("ic.txt", O_CREAT | O_TRUNC | O_WRONLY)) { //  create a new file
-		xmprintf(0, "ERROR: cannot create a file ic.txt \r\n");
+	if (!f.open(cfName, O_CREAT | O_TRUNC | O_WRONLY)) { //  create a new file
+		xmprintf(0, "ERROR: cannot create a file %s \r\n", cfName);
 		
 	} else {
 		char stmp[512];
