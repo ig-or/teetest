@@ -485,6 +485,8 @@ void onCurrent() {
 	//		lfFeed(curTmp, bs+1);
 	//	}
 
+	// save current to log file
+/*   
 	if ((lfState == lfSGood) && lfWriting) {
 		//  binary log file; fill in tcu struct
 		tcu.timestamp= mks;		// just microseconds
@@ -492,6 +494,7 @@ void onCurrent() {
 		tcu.cu[1] = m[1].current;
 		lfSendMessage(&tcu);
 	}
+	*/
 }
 
 int mdSetup() {

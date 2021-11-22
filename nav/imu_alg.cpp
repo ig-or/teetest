@@ -23,10 +23,71 @@ V3 a, w;
 const char cfName[] = "irc.txt"; /// imu->robot calibration file name
 V3 ac, wc;  ///< for calibration
 XMType ws;
+XMType wMod = 0.0f, aMod = 0.0f;
 constexpr double wrBound = 0.45*0.45; ///< for the calibration, will use only w^2 > wrBound
 
 V3 rYimu, rXimu, rZimu; ///< robot axis in IMU frame
+DCM Qri;     ///< rotation from robot frame into IMU frame 
+DCM Qir;	///< rotation from IMU frame into robot frame ; Vr = Qir * Vi
 bool haveImuCalibration = false;
+
+struct NaiveImuAttitude {
+	tstype timestamp = 0;
+	XMType angle = 0.0f;
+
+	float filterTerm0 = 0.0f;
+	float filterTerm1 = 0.0f;
+	float filterTerm2 = 0.0f;
+	static constexpr float timeConstant = 1.0f;
+	NaiveImuAttitude();
+	/**
+	 * \param a "rotation angle" from acc measurements
+	 * \param w angular velocity
+	 * \param time a timestamp in milliseconds
+	*/
+	void niUpdate(XMType a, XMType w, tstype time);
+	void niReset();
+};
+NaiveImuAttitude::NaiveImuAttitude() {
+	niReset();
+}
+void NaiveImuAttitude::niReset() {
+	timestamp = 0;
+	angle = 0.0f;
+
+	filterTerm0 = 0.0f;
+	filterTerm1 = 0.0f;
+	filterTerm2 = 0.0f;
+}
+
+void NaiveImuAttitude::niUpdate(XMType a, XMType w, tstype time) {
+	if (timestamp == 0) {
+		angle = a;
+		timestamp = time;
+		return;
+	}
+	//  TODO: make constant dt;  what is the data rate?
+	XMType dt = (time - timestamp) * 0.001;
+	if (time < timestamp) { //  rollover
+		timestamp = time;
+		return; // ????
+	}
+
+
+	timestamp = time;
+
+/*
+	float da = a - angle;
+
+	filterTerm0 = da * timeConstant * timeConstant;
+	filterTerm2 += filterTerm0 * dt;
+	filterTerm1 = filterTerm2 + (da * 2 * timeConstant) + w;
+	angle = (filterTerm1 * dt) + angle;
+	*/
+	angle = 0.99f*(angle + w*dt) + 0.01f*a;
+}
+
+NaiveImuAttitude nia;
 
 void calibration() {
 	
@@ -38,6 +99,13 @@ void calibration() {
 	rYimu = wc1;
 	rXimu = cross(ac1, wc1);
 	rZimu = cross(rXimu, rYimu);
+
+	Qri.insert2(rXimu, 0, 0);
+	Qri.insert2(rYimu, 0, 1);
+	Qri.insert2(rZimu, 0, 2);
+
+	Qir = !Qri;
+
 	haveImuCalibration = true;
 	xmprintf(0, "IMU->robot calibration processed\r\n");
 	xmprintf(0, "rx=[%.4f, %.4f, %.4f], ry=[%.4f, %.4f, %.4f], rz=[%.4f, %.4f, %.4f]\r\n",
@@ -163,6 +231,8 @@ void imuAlgFeed(const xqm::ImuData& data) {
 	imu.idInit(data);
 	++globalImuCounter;
 
+
+
 	switch (iaState) {
 	case iaInit:
 		iaState = iaStaticTest;
@@ -236,15 +306,43 @@ void imuAlgFeed(const xqm::ImuData& data) {
 				{
 					V3 gm = imu.a;
 					gm.normalize();
+					
 					float pr = sp(gm, rXimu);
 					float q = pr * 4.1f;
-					setMSpeed(q, q);
+					//setMSpeed(q, q);
+
+					
+					V3 gr = Qir*gm;
+					V3 wr = Qir*w;
+					XMType a = asin(gr[0]);
+					XMType wry = wr[1];
+					nia.niUpdate(a, -wry, imu.timestamp);
 
 					if (globalImuCounter % 100 == 0) {
-						xmprintf(0, "pr = %f\r\n", pr);
+						//xmprintf(0, "pr = %f\r\n", pr);
+						xmprintf(0, "a=%.2f [deg]; w= %.2f [deg/sec]; fi=%.3f [deg]; q = %.2f\r\n", 
+						a*Rad2Deg, wry*Rad2Deg, nia.angle*Rad2Deg, q);
 					}
+					q = nia.angle * 25.0f;
+					//setMSpeed(q, q);
 
+					xqm::XQMData12 at;
+					at.timestamp = imu.timestamp;
+					at.id = 1;
+					at.data[0] = a;
+					at.data[1] = wry;
+					at.data[2] = nia.angle;
+					at.data[3] = q;
 
+					at.data[4] = wr[0];
+					at.data[5] = wr[1];
+					at.data[6] = wr[2];
+
+					at.data[7] = gr[0];
+					at.data[8] = gr[1];
+					at.data[9] = gr[2];
+
+					lfSendMessage(&at);
 				}
 
 
@@ -267,6 +365,7 @@ void rStay() {
 	}
 
 	rState = rsPlay;
+	nia.niReset();
 	led1.liSetMode(LedIndication::LIRamp, 2.0f);
 }
 

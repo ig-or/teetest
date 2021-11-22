@@ -8,4 +8,5 @@ lib-vs-x64
 lib
 *.bak
 *.zip
+Manifest.toml
 

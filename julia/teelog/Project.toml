@@ -1,0 +1,14 @@
+name = "teelog"
+uuid = "8b65eaaa-e38a-4944-ac0e-07d19f0b1ebf"
+authors = ["igor "]
+version = "0.1.0"
+
+[deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+QWTWPlot = "193516b8-fe0d-4284-b46c-e203758f96c4"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+xmatrix = "6a9920c0-482a-44e3-87d9-a67885fa1754"
+xqdata = "7234b3fe-11b5-4f40-9b68-cccf677bf593"
