@@ -80,7 +80,7 @@ void inputProc(void(cb)(char*)) {
 	int cmdListIndex = 0;
 	int cmdIndex = 0;
 
-    printf("starting inp thread \n");
+    //printf("starting inp thread \n");
 
 	while (!inpExitRequest) {
         //printf(".");
@@ -195,7 +195,7 @@ void inputProc(void(cb)(char*)) {
 	}
 	int abc = 0;
     inpExitRequest = true;
-    printf("exiting inp thread \n");
+    //printf("exiting inp thread \n");
 
 }
 

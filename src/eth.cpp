@@ -206,13 +206,13 @@ void ethLoop() {
   	} 
 	*/  
 	unsigned int ms = millis();
-	if ((ms - aliveTime) > 5250) {
+	if ((ms - aliveTime) > 1000) {
 		aliveTime = ms;
 		//udp.beginPacket("192.168.0.181", 8888);
 		//udp.write("alive\r\n");
 		//udp.endPacket();
 		if (clientConnected) {
-			client.write("alive\n", 6);
+			client.write("ping\n", 6);
 		}
 	}
 	

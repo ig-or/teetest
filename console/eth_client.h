@@ -1,19 +1,27 @@
 
 
 #pragma once
+
 #include "boost/asio.hpp"
+#include <mutex>
+#include <condition_variable>
+//#include <chrono>
 
 typedef void(*vf)(void);
 typedef void(*data_1)(char* s, int size);
 typedef void(*data_2)(char* s);
 
+extern std::mutex mu;
+extern std::condition_variable cv;
+
 class EthClient {
 public:
 	bool connected;
 	vf pingReply;
+	//std::chrono::time_point<std::chrono::system_clock> pingTime;
 
 	EthClient();
-	void startClient(data_1 cb);
+	void startClient(data_1 cb, vf ping);
 	void StopClient();
 	int do_write(const char* s);
 
@@ -38,6 +46,7 @@ private:
 	void do_read();
 	void process(boost::system::error_code ec, std::size_t len);
 	data_1 cb1 = 0;
+	vf ping1 = 0;
 };
 
 

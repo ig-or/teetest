@@ -5,7 +5,8 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
-
+std::mutex mu;
+std::condition_variable cv;
 
 EthClient::EthClient() : socket(io_context) {
 	pleaseStop = false;
@@ -16,7 +17,7 @@ EthClient::EthClient() : socket(io_context) {
 	cb1 = 0;
 }
 
-void EthClient::startClient(data_1 cb) {
+void EthClient::startClient(data_1 cb, vf ping) {
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::address;
 
@@ -26,6 +27,7 @@ void EthClient::startClient(data_1 cb) {
 	theFile = 0;
 	lastReportedProgress = 0;
 	cb1 = cb;
+	ping1 = ping;
 
 	try {
 		//tcp::resolver resolver(io_service);
@@ -83,14 +85,28 @@ int EthClient::do_write(const char* s) {
 void EthClient::process(boost::system::error_code ec, std::size_t len) {
 	if ((ec) || (pleaseStop)) {
 		//socket.close();
+		printf("EthClient::process error  \n");
+		if ((ec == boost::asio::error::eof) || (ec == boost::asio::error::connection_reset)) {
+			connected = false;
+			socket.close();
+			printf("disconnected ? ");
+		}
 		return;
+	}
+	//std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+	if (len < 1) {
+		return;
+	}
+	if (ping1 != 0) {
+		ping1();
 	}
 	if (strncmp(buf, "tee", 3) == 0) {
 		connected = true;
-		//std::lock_guard<std::mutex> lk(mu);
-		//cv.notify_all();
-		printf("tee!\n");
-	} else if (strncmp(buf, "alive", 5) == 0) { //  ping
+		std::lock_guard<std::mutex> lk(mu);
+		cv.notify_all();
+		//printf("tee!\n");
+		
+	} else if (strncmp(buf, "ping", 4) == 0) { //  ping
 
 	} else 	if (cb1 != 0) {
 		cb1(buf, len);
