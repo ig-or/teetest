@@ -85,7 +85,7 @@ int EthClient::do_write(const char* s) {
 void EthClient::process(boost::system::error_code ec, std::size_t len) {
 	if ((ec) || (pleaseStop)) {
 		//socket.close();
-		printf("EthClient::process error  \n");
+		printf("EthClient::process error ec=%s \n", ec.message().c_str());
 		if ((ec == boost::asio::error::eof) || (ec == boost::asio::error::connection_reset)) {
 			connected = false;
 			socket.close();

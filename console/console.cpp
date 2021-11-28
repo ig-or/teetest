@@ -4,10 +4,8 @@
 #include <thread>
 #include <iostream>
 
-
 #include "inproc.h"
 #include "eth_client.h"
-
 
 EthClient cli;
 std::chrono::time_point<std::chrono::system_clock> pingTime;
@@ -39,7 +37,7 @@ int main(int argc, char *argv[]) {
 	//cli.startClient(teeData);
 	std::thread tcp([&] { cli.startClient(teeData, ping); } );
 	std::unique_lock<std::mutex> lk(mu);
-	if (cv.wait_for(lk, 2500ms, [] {return cli.connected; })) {
+	if (cv.wait_for(lk, 1800ms, [] {return cli.connected; })) {
 		printf("tee\n");
 	} else {
 		printf("cannot connect to server \n");
@@ -59,26 +57,34 @@ int main(int argc, char *argv[]) {
 
 		std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 		long long dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - pingTime).count() ;
-		if (dt > 4500) {
-			printf("ping timeout \n");
+		if (dt > 3500) {
+			printf("ping timeout \r\n");
+			inpExitRequest = true;
+			printf("111 \r\n");	
 			break;
 		}
 		if (!cli.connected) {
-			printf("server disconnected \n");
+			printf("server disconnected \r\n");
 			break;
 		}
 	}
-	printf("exiting .. ");
-	std::cout << "exiting .. ";
+	printf("222 \r\n");
 	inpExitRequest = true;
-	cli.StopClient();
-	inp.join();
-	printf("inp thread finished \n");
-	tcp.join();
-	printf("tcp thread finished \n");
-	std::this_thread::sleep_for(20ms);
+	//ungetc('q', stdin);
+	//printf("exiting .. ");
+	//std::cout << "exiting .. ";
+	//for (int i = 0; i < 250; i++) { ungetc('q', stdin);   ungetc('\r', stdin);    ungetc('\n', stdin);  }
 
-	printf("console stop\n");
+	printf("stopping tcp .. \r\n");
+	cli.StopClient();
+	tcp.join();
+	printf("tcp thread finished \r\n");
+
+	std::this_thread::sleep_for(200ms);
+	inp.join();
+	printf("inp thread finished \r\n");
+
+	printf("console stop\r\n");
 	return 0;
 }
 

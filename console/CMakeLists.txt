@@ -29,7 +29,11 @@ addSourceFiles("message" "../xqtools/message/src" xmessage xparser xq_parser dat
 
 
 #addOtherLib("Winmm.lib")
-#addOtherLib("ws2_32.lib")
+if (WIN32)
+addOtherLib("ws2_32.lib")
+else()
+addOtherLib(ncurses)
+endif()
 
 programEnd()
 

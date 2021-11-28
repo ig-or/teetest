@@ -7,13 +7,16 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include <unistd.h>
 #ifdef WIN32
 	#include <conio.h>
 #else
-	#include <termios.h>
+	//#include <termios.h>
+	#include <ncurses.h>
 #endif
 #include "xmroundbuf.h"
 
+volatile bool inpExitRequest = false;
 
 #ifdef WIN32
 int getche(){
@@ -24,30 +27,34 @@ int getche(){
 	}
 }
 #else
+/*
 static struct termios old, current;
-volatile bool inpExitRequest = false;
 
-/* Initialize new terminal i/o settings */
 void initTermios(int echo) 
 {
-  tcgetattr(0, &old); /* grab old terminal i/o settings */
-  current = old; /* make new settings same as old settings */
-  current.c_lflag &= ~ICANON; /* disable buffered i/o */
+  tcgetattr(0, &old); // grab old terminal i/o settings 
+  current = old; // make new settings same as old settings 
+  cfmakeraw(&current);
+  current.c_lflag &= ~ICANON; // disable buffered i/o 
+
+  //current.c_cc[VMIN] = 0;
+  //current.c_cc[VTIME] = 10;
+
   if (echo) {
-      current.c_lflag |= ECHO; /* set echo mode */
+      current.c_lflag |= ECHO; // set echo mode 
   } else {
-      current.c_lflag &= ~ECHO; /* set no echo mode */
+      current.c_lflag &= ~ECHO; // set no echo mode 
   }
-  tcsetattr(0, TCSANOW, &current); /* use these new terminal i/o settings now */
+  tcsetattr(0, TCSANOW, &current); //use these new terminal i/o settings now 
 }
 
-/* Restore old terminal i/o settings */
+// Restore old terminal i/o settings 
 void resetTermios(void) 
 {
   tcsetattr(0, TCSANOW, &old);
 }
 
-/* Read 1 character - echo defines echo mode */
+// Read 1 character - echo defines echo mode 
 char getch_(int echo) 
 {
   char ch;
@@ -57,17 +64,46 @@ char getch_(int echo)
   return ch;
 }
 
-/* Read 1 character without echo */
+//Read 1 character without echo 
 char getch(void) 
 {
   return getch_(0);
 }
 
-/* Read 1 character with echo */
+// Read 1 character with echo 
 char getche(void) 
 {
   return getch_(1);
 }
+
+int kbhit()
+{
+    // timeout structure passed into select
+    struct timeval tv;
+    // fd_set passed into select
+    fd_set fds;
+    // Set up the timeout.  here we can wait for 1 second
+    tv.tv_sec = 0;
+    tv.tv_usec = 200000;
+
+    // Zero out the fd_set - make sure it's pristine
+    FD_ZERO(&fds);
+    // Set the FD that we want to read
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    // select takes the last file descriptor value + 1 in the fdset to check,
+    // the fdset for reads, writes, and errors.  We are only passing in reads.
+    // the last parameter is the timeout.  select will return if an FD is ready or 
+    // the timeout has occurred
+    int test = select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+	if ((test == 0) || (test == -1)) {
+		return 0;
+	}
+	return 1;
+    // return 0 if STDIN is not ready to be read.
+    return FD_ISSET(STDIN_FILENO, &fds);
+}
+
+*/
 
 #endif
 
@@ -80,81 +116,35 @@ void inputProc(void(cb)(char*)) {
 	int cmdListIndex = 0;
 	int cmdIndex = 0;
 
-    //printf("starting inp thread \n");
+	#ifdef WIN32
+
+	#else
+	initscr();
+	//raw();
+	cbreak();
+	keypad(stdscr, TRUE);	
+	timeout(200);
+	//noecho();
+	#endif
 
 	while (!inpExitRequest) {
         //printf(".");
-		ch = getche();
-		if (ch == -1) {
-			if (inpExitRequest) {
-				break;
-			}
-			std::this_thread::sleep_for(2ms);
+		//if (kbhit() == 0) {
+			//std::this_thread::sleep_for(100ms);
+			//continue;
+		//}
+		//printf("*\r\n");
+		//ch = getche();
+		ch = getch();
+		if (ch == ERR) {
 			continue;
 		}
+		//printf(" ch1=%d \r\n", ch);
+		printf("%c", ch);
+		refresh();
 
 		if (cmdIndex > cmdSize - 3) {
 			cmdIndex = 0;
-		}
-		if ((ch == 0) || (ch == 224)) {
-			ch = getche();
-			bool ok = false;
-			switch (ch) {
-			case 67:  //  F9
-				break;
-			case 72: //  (up)
-				if (cmdListIndex > 0) {
-					cmdListIndex--;
-					ok = true;
-				}
-				break;
-			case 80: // 80 (down)
-				if (cmdListIndex < (cmdList.num - 1)) {
-					cmdListIndex--;
-					ok = true;
-				}
-				break;
-
-			case 75:  //  left
-				break;
-			case 77: // right
-				break;
-			case 115: //  ctrl+left
-				break;
-
-			case 116: //  ctrl + right
-				break;
-			case 134:  //  F12
-				//system("cls");
-				break;
-
-			case 59: //  F1 - F8
-			case 60:
-			case 61:
-			case 62:
-			case 63:
-			case 64:
-			case 65:
-			case 66: 
-					 printf("F %d\n", ch - 58);
-					 break;
-			case 68: //  F10
-				break;
-			case 133:  // F11
-				break;
-
-			default:
-				xm_printf("got scan code %d\n", ch);
-			};
-
-			if (ok) {
-				printf("\r                                                           \r");
-				strcpy(cmd, cmdList[cmdListIndex].c_str());
-				cmdIndex = strlen(cmd);
-				cmd[cmdIndex] = 0;
-				printf("%s", cmd);
-			}
-			continue;
 		}
 		
 		cmd[cmdIndex] = ch;
@@ -166,7 +156,6 @@ void inputProc(void(cb)(char*)) {
 			inpExitRequest = true;
 			break;
 		}
-
 
 		if ((ch == '\n') || (ch == '\r')) {
             if (cmdIndex < 1) {
@@ -195,6 +184,9 @@ void inputProc(void(cb)(char*)) {
 	}
 	int abc = 0;
     inpExitRequest = true;
+
+	endwin();
+	//resetTermios();
     //printf("exiting inp thread \n");
 
 }
