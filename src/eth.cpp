@@ -4,6 +4,7 @@
 
 #include "eth.h"
 #include "teetools.h"
+#include "rbuf.h"
 #include "cmdhandler.h"
 
 enum EthStatus
@@ -21,30 +22,43 @@ unsigned int aliveTime = 0;
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network:
 //byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress ip(192, 168, 0, 177);
+const IPAddress ip(192, 168, 0, 177);
 
-unsigned int localPort = 8888; // local port to listen on
+const unsigned int localPortUdp = 8888; // local port to listen on
+const unsigned int localPortTcp = 8889; // local port to listen on
 
 // buffers for receiving and sending data
-const int maxUdpSize = 512;
-char packetBuffer[maxUdpSize]; // buffer to hold incoming packet,
-char ReplyBuffer[] = "acknowledged\r\n";	   // a string to send back
+static const int maxPacketSize = 512;
+char packetBuffer[maxPacketSize]; // buffer to hold incoming packet,
+//char ReplyBuffer[] = "acknowledged\r\n";	   // a string to send back
+
+const int rbSize = 1024;
+unsigned char buf[rbSize];
+static ByteRoundBuf rb;
+static bool clientConnected = false;
+
+const int bufSize2 = 256;
+unsigned char buf2[bufSize2];
 
 // An EthernetUDP instance to let us send and receive packets over UDP
-EthernetUDP udp;
+//EthernetUDP udp;
+static EthernetServer server;
+static EthernetClient client;
+
 void teensyMAC(uint8_t *mac);
 
 void ethPrint() {
-	xmprintf(0, "ETH	status=%d\r\n", static_cast<int>(ethStatus));
+	xmprintf(2, "ETH status=%d; clientConnected=%s;  client=%s   \r\n", static_cast<int>(ethStatus),
+		clientConnected ? "yes" : "no", client ? "yes" : "no");
 }
 
 void ethSetup() {
 	// start the Ethernet
-	//xmprintf(0, "eth starting ....  ");
+	//xmprintf(2, "eth starting ....  ");
 	uint8_t mac[6];
 	teensyMAC(mac);
 	Ethernet.begin(mac, ip);
-	//xmprintf(0, " .. begin .. ");
+	//xmprintf(2, " .. begin .. ");
 
 	// Check for Ethernet hardware present
 	if (Ethernet.hardwareStatus() == EthernetNoHardware) 	{
@@ -57,23 +71,109 @@ void ethSetup() {
 	}
 
 	// start UDP
-	udp.begin(localPort);
+	//udp.begin(localPort);
+	// start the server
+
+  	server.begin(localPortTcp);
 	ethStatus = sEthGood;
-	//xmprintf(0, "eth started \r\n");
+	//xmprintf(2, "eth started 1 \r\n");
+	initByteRoundBuf(&rb, buf, rbSize);
+	client = server.available();
+	xmprintf(2, "eth started 2; client=%s \r\n", client ? "yes" : "no");
+}
+
+void ethFeed(char* s, int size) {
+	bool irq = disableInterrupts();
+	if (!clientConnected) {
+		enableInterrupts(irq);
+		return;
+	}
+	put_rb_s(&rb, s, size);
+	enableInterrupts(irq);
+	//xmprintf(2, "ethFeed: + %d bytes \r\n", size);
 }
 
 void ethLoop() {
-
 	EthernetLinkStatus currentLinkStatus = Ethernet.linkStatus();
 	if (currentLinkStatus != linkStatus) {
 		linkStatus = currentLinkStatus;
-		xmprintf(0, "ETH link status %d \r\n", linkStatus);
+		xmprintf(2, "ETH link status %d \r\n", linkStatus);
 	}
 	if (linkStatus == LinkOFF) {
 		ethStatus = sEthNoLink;
+		if (clientConnected) {
+			clientConnected = false;
+			xmprintf(2, "ETH client disconnected 3 \r\n");
+		}
 		return;
 	}
-	
+	if (!client) {
+		client = server.available();
+	}
+	if (!client) {
+		if (clientConnected) {
+			clientConnected = false;
+			xmprintf(2, "ETH client disconnected 2 \r\n");
+		}
+		return;
+	}
+	bool con = client.connected();
+	if (clientConnected != con) {
+		clientConnected  = con;
+		if (clientConnected) {
+			bool irq = disableInterrupts();
+			resetByteRoundBuf(&rb);
+			enableInterrupts(irq);
+			xmprintf(2, "ETH client connected \r\n");
+		} else {
+			xmprintf(2, "ETH client disconnected \r\n");
+			//client.close();
+			client.stop();
+			return;
+		}
+	}
+	if (!clientConnected) {
+		return;
+	}
+	int bs, bs1;
+	while ((bs = client.available()) > 0) {
+		bs1 = client.read(packetBuffer, maxPacketSize);
+		packetBuffer[maxPacketSize-1] = 0;
+		//xmprintf(2, "ETH: got %d bytes {%s} \r\n", bs1, packetBuffer);
+		if ((bs1 > 0)) {
+			if(packetBuffer[0] == '@') {
+				int bs2 = (bs1 >= maxPacketSize) ? maxPacketSize-1 : bs1;
+				packetBuffer[bs2] = 0;
+				processTheCommand(packetBuffer + 1, bs2-1); // process the command
+				//xmprintf(2, "ETH: sending {%s} \r\n", packetBuffer+1);
+			} else if (strncmp(packetBuffer, "console", 7) == 0 ) {  //  console client connected
+				client.write("tee ", 4);
+			}
+
+			
+		}
+
+	}
+	bool irq = disableInterrupts();
+	int num = rb.num;
+	enableInterrupts(irq);
+	while (num > 0) {
+		irq = disableInterrupts();
+		int bs = get_rb_s(&rb, buf2, bufSize2-1);
+		num = rb.num;
+		enableInterrupts(irq);
+		if (bs > 0) {
+			int u = client.availableForWrite();
+			buf2[bs] = 0; // !
+			buf2[bufSize2-1] = 0; // ?
+			int test = client.write(buf2, bs);
+			
+			//xmprintf(2, "\r\nETH availableForWrite=%d; test = %d; bs=%d *sending* {%s} \r\n", u, test, bs, buf2);
+		}
+	}
+
+
+	/*
 	// if there's data available, read a packet
 	int packetSize = udp.parsePacket();
 	if (packetSize) {
@@ -85,7 +185,7 @@ void ethLoop() {
 			bs = maxUdpSize-1;
 		}
 		packetBuffer[bs] = 0;  //  put zero AFTER the message
-		xmprintf(0, "ETH got %d bytes from %d.%d.%d.%d port %d (%s)\r\n",
+		xmprintf(2, "ETH got %d bytes from %d.%d.%d.%d port %d (%s)\r\n",
 			bs,
 			ra[0], 	ra[1], ra[2], ra[3],
 			rp,
@@ -100,75 +200,31 @@ void ethLoop() {
 		if ((bs > 0) && (packetBuffer[0] == '@')) {
 			processTheCommand(packetBuffer + 1); // process the command
 		}
-  	} 
-	  
-	unsigned int ms = millis();
-	if ((ms - aliveTime) > 250) {
-		aliveTime = ms;
-		udp.beginPacket("192.168.0.181", 8888);
-		udp.write("alive\r\n");
-		udp.endPacket();
-	}
+		
 
+		
+  	} 
+	*/  
+	unsigned int ms = millis();
+	if ((ms - aliveTime) > 5250) {
+		aliveTime = ms;
+		//udp.beginPacket("192.168.0.181", 8888);
+		//udp.write("alive\r\n");
+		//udp.endPacket();
+		if (clientConnected) {
+			client.write("alive\n", 6);
+		}
+	}
+	
 }
 
 void teensyMAC(uint8_t *mac) {
-
 	static char teensyMac[23];
 
-	#if defined(HW_OCOTP_MAC1) && defined(HW_OCOTP_MAC0)
-		Serial.println("using HW_OCOTP_MAC* - see https://forum.pjrc.com/threads/57595-Serial-amp-MAC-Address-Teensy-4-0");
-		for(uint8_t by=0; by<2; by++) mac[by]=(HW_OCOTP_MAC1 >> ((1-by)*8)) & 0xFF;
-		for(uint8_t by=0; by<4; by++) mac[by+2]=(HW_OCOTP_MAC0 >> ((3-by)*8)) & 0xFF;
-
-		#define MAC_OK
-
-	#else
-
-		mac[0] = 0x04;
-		mac[1] = 0xE9;
-		mac[2] = 0xE5;
-
-		uint32_t SN=0;
-		__disable_irq();
-
-		#if defined(HAS_KINETIS_FLASH_FTFA) || defined(HAS_KINETIS_FLASH_FTFL)
-			Serial.println("using FTFL_FSTAT_FTFA - vis teensyID.h - see https://github.com/sstaub/TeensyID/blob/master/TeensyID.h");
-			
-			FTFL_FSTAT = FTFL_FSTAT_RDCOLERR | FTFL_FSTAT_ACCERR | FTFL_FSTAT_FPVIOL;
-			FTFL_FCCOB0 = 0x41;
-			FTFL_FCCOB1 = 15;
-			FTFL_FSTAT = FTFL_FSTAT_CCIF;
-			while (!(FTFL_FSTAT & FTFL_FSTAT_CCIF)) ; // wait
-			SN = *(uint32_t *)&FTFL_FCCOB7;
-
-			#define MAC_OK
-			
-		#elif defined(HAS_KINETIS_FLASH_FTFE)
-			Serial.println("using FTFL_FSTAT_FTFE - vis teensyID.h - see https://github.com/sstaub/TeensyID/blob/master/TeensyID.h");
-			
-			kinetis_hsrun_disable();
-			FTFL_FSTAT = FTFL_FSTAT_RDCOLERR | FTFL_FSTAT_ACCERR | FTFL_FSTAT_FPVIOL;
-			*(uint32_t *)&FTFL_FCCOB3 = 0x41070000;
-			FTFL_FSTAT = FTFL_FSTAT_CCIF;
-			while (!(FTFL_FSTAT & FTFL_FSTAT_CCIF)) ; // wait
-			SN = *(uint32_t *)&FTFL_FCCOBB;
-			kinetis_hsrun_enable();
-
-			#define MAC_OK
-			
-		#endif
-
-		__enable_irq();
-
-		for(uint8_t by=0; by<3; by++) mac[by+3]=(SN >> ((2-by)*8)) & 0xFF;
-
-	#endif
-
-	#ifdef MAC_OK
-		sprintf(teensyMac, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-		Serial.println(teensyMac);
-	#else
-		Serial.println("ERROR: could not get MAC");
-	#endif
+	//Serial.println("using HW_OCOTP_MAC* - see https://forum.pjrc.com/threads/57595-Serial-amp-MAC-Address-Teensy-4-0");
+	for(uint8_t by=0; by<2; by++) mac[by]=(HW_OCOTP_MAC1 >> ((1-by)*8)) & 0xFF;
+	for(uint8_t by=0; by<4; by++) mac[by+2]=(HW_OCOTP_MAC0 >> ((3-by)*8)) & 0xFF;
+		
+	sprintf(teensyMac, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	//Serial.println(teensyMac);
 }

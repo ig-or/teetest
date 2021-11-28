@@ -9,6 +9,7 @@
 #include "memsic.h"
 #include "imu_alg.h"
 #include "logfile.h"
+#include "eth.h"
 
 
 static const int incomingUsbSerialInfoSize = 32;
@@ -53,7 +54,7 @@ void onIncomingInfo(char* s, int size) {
 
 int processTheCommand(const char* s, int size) {
     //xmprintf(0, "got cmd size=%d (%s)", size, s);
-	xmprintf(0, "(%s)\r\n", s);
+	xmprintf(0, "processTheCommand: (%s)\r\n", s);
 	if (size == 0) {
 		size = strlen(s);
 	}
@@ -112,6 +113,10 @@ int processTheCommand(const char* s, int size) {
 	if (strcmp(s, "imu") == 0) {
 		memsicPrint();
 	}
+	if (strcmp(s, "eth") == 0) {
+		ethPrint();
+	}
+	
 	
 	if (strncmp(s, "log", 3) == 0) {
 		if (strlen(s) > 4) { //   use log file name

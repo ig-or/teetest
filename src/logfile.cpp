@@ -172,6 +172,7 @@ void lfStop() {
 		n = rb.num;
 		enableInterrupts(irq);
 		file.write(tmpBuf, bs);
+		fileBytesCounter += bs;
 	}
 
 	if (!file.truncate()) {
@@ -179,7 +180,7 @@ void lfStop() {
 		lfState = lfSError;
   	}
 	file.close();
-	xmprintf(0, "log stopped\r\n");
+	xmprintf(0, "log stopped; fileBytesCounter=%lld\r\n", fileBytesCounter);
 }
 
 void lfFeed(void* data, int size) {

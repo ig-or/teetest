@@ -54,10 +54,9 @@ extern "C" int main(void) {
 	//analogWriteFrequency(ledPin, 915.527);
 	int p = 0;
 	int phase;
-	const int phaseLen = 2500;
+	const int phaseLen = 1500;
 	int halfPhaseLen = phaseLen / 2;
 	unsigned int hsTime = 0;
-	const int hsPeriod = 4500;
 	xmprintf(0, "\r\n4.1 started\r\n");
 
 /*

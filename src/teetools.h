@@ -60,5 +60,10 @@ struct TTime {
 	}
 };
 */
+
+/**
+ *  dst    	bit0 = 1   not send to USB
+ * 			bit1 = 1   not send to Ethernet
+ * */
 int xmprintf(int dst, const char* s, ...);
 

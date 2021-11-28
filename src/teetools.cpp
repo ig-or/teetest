@@ -5,6 +5,7 @@
 
 #include "teetools.h"
 #include "motordriver.h"
+#include "eth.h"
 
 uint32_t msNow = 0;
 uint32_t mksNow = 0;
@@ -151,12 +152,16 @@ int xmprintf(int dst, const char* s, ...) {
 	}
 
 writeHere:
-	int eos = strlen(sbuf);
 	sbuf[sbSize - 1] = 0;
+	int eos = strlen(sbuf);
 
 //	if (usbSerialWorking /*&& (dst & 4)*/) {
+	if ((dst & 1) == 0) {
 		usb_serial_write((void*)(sbuf), eos);
-//	}
+	}
+	if ((dst & 2) == 0) {
+		ethFeed(sbuf, eos);
+	}
 	
 	sprintCounter++;
 
