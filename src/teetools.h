@@ -66,4 +66,5 @@ struct TTime {
  * 			bit1 = 1   not send to Ethernet
  * */
 int xmprintf(int dst, const char* s, ...);
+void printfToEth(bool x);
 

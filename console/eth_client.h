@@ -19,6 +19,8 @@ public:
 	bool connected;
 	vf pingReply;
 	//std::chrono::time_point<std::chrono::system_clock> pingTime;
+	int readingTheLogFile = 0;
+	int lastReportedProgress = 0;
 
 	EthClient();
 	void startClient(data_1 cb, vf ping);
@@ -29,10 +31,10 @@ public:
 private:
 	volatile bool pleaseStop = false;
 	int fileSize, fileBytesCounter, packetsCounter, badPacketCounter, counterErrorCounter;
-	int readingTheLogFile, lastReportedProgress;
 	int incomingPacketsCounter = 0;
 	std::string currentFileName;
 	FILE*	theFile = 0;
+
 	
 	boost::asio::io_context io_context;	
 	boost::asio::ip::tcp::socket socket;
@@ -45,6 +47,10 @@ private:
 	
 	void do_read();
 	void process(boost::system::error_code ec, std::size_t len);
+	bool checkThePacket(const char* buf, int len);
+	void readingTheFile(char* buf, int len);
+
+
 	data_1 cb1 = 0;
 	vf ping1 = 0;
 };

@@ -2,7 +2,10 @@
 */
 #pragma once
 
+#include "rbuf.h"
+
 extern volatile bool lfWriting; ///< true if writing the log file right now
+extern char fileNameCopy[64];
 enum LFState {
 	lfSInit,
 	lfSGood,
@@ -36,6 +39,15 @@ template<class T> int lfSendMessage(const T* info) {
 void lfProcess();
 
 void lfPrint();
+void lfFiles();
+int lfGetFile(char* name);
+
+extern volatile ByteRoundBuf rb;
+static const int rbSize = 4096; //8192;
+extern unsigned char __attribute__((aligned(32))) rbBuf[rbSize];
+
+//unsigned char* getRBuf() ;
+//void resetRB() 
 
 
 

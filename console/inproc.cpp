@@ -137,6 +137,7 @@ void inputProc(void(cb)(char*)) {
 		//ch = getche();
 		ch = getch();
 		if (ch == ERR) {
+			refresh();
 			continue;
 		}
 		//printf(" ch1=%d \r\n", ch);
@@ -151,8 +152,12 @@ void inputProc(void(cb)(char*)) {
 		cmdIndex++;
 
 		//printf("%c", char(ch & 0x00FF));
-		ch = toupper(ch);
-		if ((ch == 'Q') || (inpExitRequest)) {
+		//ch = toupper(ch);
+		//if ((ch == 'Q') || (inpExitRequest)) {
+		//	//inpExitRequest = true;
+		//	break;
+		//}
+		if (ch == 276) { //  F12
 			inpExitRequest = true;
 			break;
 		}
@@ -171,6 +176,7 @@ void inputProc(void(cb)(char*)) {
 				//clrscr();
 				//system("cls");
 			} else {
+				//printf("sending {%s}\r\n", cmd);
 				cb(cmd);
 				cmdList.put(std::string(cmd));
 				cmdListIndex = cmdList.num - 1;

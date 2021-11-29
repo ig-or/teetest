@@ -38,6 +38,12 @@ void logSetup(const char* fileName) {
 	char fn[32];
 	xmprintf(0, "logSetup! %s\r\n", fileName);
 	strncpy(fn, fileName, 16);
+
+	int nfn = strlen(fn);
+	if (nfn > 3) {
+		fn[nfn - 3] = 0; //  remove .xq
+	}
+	
 	strcat(fn, "_s.txt");
 	FsFile f;
 
@@ -130,6 +136,11 @@ int ptf(FsFile& file, const char* s, ...) {
 	return 0;
 }
 
+static bool enableEthOutput = true;
+void printfToEth(bool x) {
+	enableEthOutput = x;
+}
+
 int xmprintf(int dst, const char* s, ...) {
 	va_list args;
 	va_start(args, s);
@@ -159,7 +170,7 @@ writeHere:
 	if ((dst & 1) == 0) {
 		usb_serial_write((void*)(sbuf), eos);
 	}
-	if ((dst & 2) == 0) {
+	if (((dst & 2) == 0) && enableEthOutput) {
 		ethFeed(sbuf, eos);
 	}
 	

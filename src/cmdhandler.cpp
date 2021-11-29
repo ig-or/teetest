@@ -9,6 +9,7 @@
 #include "memsic.h"
 #include "imu_alg.h"
 #include "logfile.h"
+#include "logsend.h"
 #include "eth.h"
 
 
@@ -69,6 +70,10 @@ int processTheCommand(const char* s, int size) {
 		getMSpeed(ms1, ms2);
 		ms1 -= 0.1; ms2 -= 0.1;
 		setMSpeed(ms1, ms2);
+		return 0;
+	}
+	if (strcmp(s, "files") == 0) {
+		lfFiles();
 		return 0;
 	}
 	if (strcmp(s, "stop") == 0) {
@@ -133,6 +138,10 @@ int processTheCommand(const char* s, int size) {
 	if (strcmp(s, "lprint") == 0) {
 		lfPrint();
 	}
+	if (strncmp(s, "get ", 4) == 0) {
+		lfGetFile(s + 4);
+	}
+	
 
     return 0;
 }

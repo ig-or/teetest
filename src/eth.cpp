@@ -44,12 +44,16 @@ unsigned char buf2[bufSize2];
 //EthernetUDP udp;
 static EthernetServer server;
 static EthernetClient client;
+EthInfoHandler infoHandler = 0;
 
 void teensyMAC(uint8_t *mac);
 
 void ethPrint() {
 	xmprintf(2, "ETH status=%d; clientConnected=%s;  client=%s   \r\n", static_cast<int>(ethStatus),
 		clientConnected ? "yes" : "no", client ? "yes" : "no");
+}
+void ethSetInfoHandler(EthInfoHandler h) {
+	infoHandler = h;
 }
 
 void ethSetup() {
@@ -141,18 +145,22 @@ void ethLoop() {
 		packetBuffer[maxPacketSize-1] = 0;
 		//xmprintf(2, "ETH: got %d bytes {%s} \r\n", bs1, packetBuffer);
 		if ((bs1 > 0)) {
-			if(packetBuffer[0] == '@') {
+		 	if (strncmp(packetBuffer, "console", 7) == 0 ) {  //  console client connected
+				client.write("tee ", 4);
+			} else 	if ((bs1 > 4) && (memcmp(packetBuffer, "TBWF", 4) == 0)) {
+				if (infoHandler) {
+					infoHandler(gfPleaseSendNext);
+				}
+			} else if ((bs1 > 4) && (memcmp(packetBuffer, "TBWN", 4) == 0)) {
+				if (infoHandler) {
+					infoHandler(gfPleaseRepeat);
+				}
+			} else {
 				int bs2 = (bs1 >= maxPacketSize) ? maxPacketSize-1 : bs1;
 				packetBuffer[bs2] = 0;
-				processTheCommand(packetBuffer + 1, bs2-1); // process the command
-				//xmprintf(2, "ETH: sending {%s} \r\n", packetBuffer+1);
-			} else if (strncmp(packetBuffer, "console", 7) == 0 ) {  //  console client connected
-				client.write("tee ", 4);
+				processTheCommand(packetBuffer, bs2); // process the command
 			}
-
-			
 		}
-
 	}
 	bool irq = disableInterrupts();
 	int num = rb.num;

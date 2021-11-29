@@ -1,6 +1,6 @@
 #include "logfile.h"
 #include "SdFat.h"
-#include "rbuf.h"
+#include "sdios.h"
 #include "teetools.h"
 #include "xmessage.h"
 #include "xmessagesend.h"
@@ -11,7 +11,7 @@ constexpr uint64_t fileSize2 = fileSize - 16*512;
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
 volatile ByteRoundBuf rb;
-static const int rbSize = 4096; //8192;
+//static const int rbSize = 4096; //8192;
 static unsigned char __attribute__((aligned(32))) rbBuf[rbSize];
 
 //  buffer for writing to file
@@ -31,6 +31,14 @@ char fileNameCopy[64];
 volatile LFState lfState = lfSInit;
 volatile static bool sdStarted = false;
 
+/*
+unsigned char* getRBuf() {
+	return rbBuf;
+}
+void resetRB() {
+	resetByteRoundBuf(&rb);
+}
+*/
 void lfPrint() {
 	xmprintf(0, "file %s: \tlfState=%d; lfWriting=%s; ffErrorCounter=%d; ffOverflowCounter=%d; rb.overflow=%d; rb.error=%d; sdStarted=%s      \r\n", 
 		fileNameCopy, (int)(lfState), lfWriting?"yes":"no", 
@@ -60,6 +68,37 @@ void lfInit() {
 		sdStarted = true;
 		lfState = lfSGood;
 		xmprintf(0, "sd card started \r\n");
+		uint32_t size = sd.card()->sectorCount();
+		if (size == 0) {
+			xmprintf(0, "cannot read SD card size \r\n");
+		} else {
+			 uint32_t sizeMB = 0.000512 * size + 0.5;
+			 xmprintf(0, "SD size %u MB; Cluster size (bytes): %u \r\n", sizeMB, sd.vol()->bytesPerCluster());
+		}
+	}
+}
+
+void lfFiles() {
+	if (lfWriting) {
+		xmprintf(0, "writing file %s right now \r\n", fileNameCopy);
+		return;
+	}
+	if (!sdStarted) { //  try to start?
+		xmprintf(0, "SD didnt start \r\n");
+		return;
+	}
+	mxat(lfState == lfSGood);
+	FsFile root, file;
+  	if (!root.open("/")) {
+    	xmprintf(0, "cannot open root \r\n");
+		return;
+	}
+	char stmp[32];
+	while (file.openNext(&root, O_RDONLY)) {
+		file.getName(stmp, 32);
+		unsigned long long size = file.size();
+		xmprintf(0, "%s\t%llu\r\n", stmp, size);
+		file.close();
 	}
 }
 
@@ -221,7 +260,7 @@ int lfSendMessage(const unsigned char* data, unsigned char type, unsigned short 
 	// IS IT OK TO USE STATIC VARIABLES BELOW?
 	// 
 	if ((!sdStarted) || (lfState != lfSGood) || (!lfWriting)) { 
-		return;
+		return 0;
 	}
 	xqm::MsgHeader hdr;
 	int ret = size + headerSize + 2;  //  size of all the message
@@ -310,8 +349,5 @@ void lfProcess() {
 }
 
 
-
-
-
-
+// =============================================================
 
