@@ -22,7 +22,6 @@ add_compile_definitions(tstype=int)
 #endif()
 
 addSourceFiles("main" "." console inproc eth_client)
-#addSourceFiles("src" "../src" )
 addSourceFiles("core" "../xqtools/core/src" rbuf xmroundbuf xmutils xstdef xmatrixplatform)
 addSourceFiles("matrix" "../xqtools/matrix/src" xmatrix_imp xmatrix2)
 addSourceFiles("message" "../xqtools/message/src" xmessage xparser xq_parser datafileloader xqdatatxtfile xmessagepack xmessagesend)
@@ -30,9 +29,9 @@ addSourceFiles("message" "../xqtools/message/src" xmessage xparser xq_parser dat
 
 #addOtherLib("Winmm.lib")
 if (WIN32)
-addOtherLib("ws2_32.lib")
+	addOtherLib("ws2_32.lib")
 else()
-addOtherLib(ncurses)
+	addOtherLib(ncurses)
 endif()
 
 programEnd()

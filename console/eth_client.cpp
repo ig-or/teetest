@@ -1,4 +1,7 @@
 
+#ifdef WIN32
+#include <SDKDDKVer.h>
+#endif
 
 #include "eth_client.h"
 #include <iostream>
@@ -140,7 +143,7 @@ void EthClient::process(boost::system::error_code ec, std::size_t len) {
 	}
 	//std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 	if (len < 1) {
-		printf("EthClient::process: len = %d\r\n", len);
+		printf("EthClient::process: len = %zd\r\n", len);
 		return;
 	}
 	if (ping1 != 0) {

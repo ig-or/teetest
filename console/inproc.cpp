@@ -3,23 +3,26 @@
 
 #include "inproc.h"
 
-
-#include <chrono>
-#include <thread>
-#include <iostream>
-#include <unistd.h>
 #ifdef WIN32
+	#include <SDKDDKVer.h>
 	#include <conio.h>
 #else
 	//#include <termios.h>
 	#include <ncurses.h>
+	#include <unistd.h>
 #endif
+
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+
 #include "xmroundbuf.h"
 
 volatile bool inpExitRequest = false;
 
 #ifdef WIN32
-int getche(){
+int getch_1(){
 	if (_kbhit()) {
 		return _getch();
 	} else {
@@ -116,16 +119,16 @@ void inputProc(void(cb)(char*)) {
 	int cmdListIndex = 0;
 	int cmdIndex = 0;
 
-	#ifdef WIN32
+#ifdef WIN32
 
-	#else
+#else
 	initscr();
 	//raw();
 	cbreak();
 	keypad(stdscr, TRUE);	
 	timeout(200);
 	//noecho();
-	#endif
+#endif
 
 	while (!inpExitRequest) {
         //printf(".");
@@ -135,14 +138,28 @@ void inputProc(void(cb)(char*)) {
 		//}
 		//printf("*\r\n");
 		//ch = getche();
+#ifdef WIN32
+		if (_kbhit()) {
+			ch = _getch();
+		}
+		else {
+			std::this_thread::sleep_for(100ms);
+			continue;
+		}
+#else
 		ch = getch();
+
 		if (ch == ERR) {
 			refresh();
 			continue;
 		}
+#endif
 		//printf(" ch1=%d \r\n", ch);
 		printf("%c", ch);
+#ifdef WIN32
+#else
 		refresh();
+#endif
 
 		if (cmdIndex > cmdSize - 3) {
 			cmdIndex = 0;
@@ -190,8 +207,9 @@ void inputProc(void(cb)(char*)) {
 	}
 	int abc = 0;
     inpExitRequest = true;
-
+#ifndef WIN32
 	endwin();
+#endif
 	//resetTermios();
     //printf("exiting inp thread \n");
 

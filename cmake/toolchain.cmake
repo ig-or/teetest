@@ -17,6 +17,8 @@ set(CMAKE_SYSTEM_PROCESSOR arm)
 include("${CMAKE_CURRENT_LIST_DIR}/options.cmake")
 
 set(gcc_path "$ENV{GCC_ARM}")
+cmake_path(NORMAL_PATH gcc_path)  # need this for Windows
+
 message(STATUS "atools =  ${atools}; gcc path = ${gcc_path}")
 #SET(ASM_OPTIONS "-x assembler-with-cpp")
 
