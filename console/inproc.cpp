@@ -176,6 +176,13 @@ void inputProc(void(cb)(char*)) {
 		//}
 		if (ch == 276) { //  F12
 			inpExitRequest = true;
+#ifdef WIN32
+			ch = _getch();
+
+#else		
+			timeout(-1);
+			ch = getch();
+#endif
 			break;
 		}
 

@@ -92,21 +92,23 @@ int lfGetFile(const char* name) {
 
 	printfToEth(false);
 	ethSetInfoHandler(sendFileViaEthHandler);
-
+	ethFileStartTime = millis();
 	ethACK(true, ethFileSize);	// lets go!
 	led1.liSetMode(LedIndication::LIRamp, 3.5);
+	xmprintf(2, "start log file %s reading \r\n", name);
 
 	return 0;
 }
 
 void sendFileViaEthComplete() {
+	ethSetInfoHandler(0);
 	ethFile.close();
 	unsigned int t2 = millis();
 	printfToEth(true);
 	//removeWifiTxEmptyHandler();
 	led1.liSetMode(LedIndication::LIRamp, 0.8);
 	//resetByteRoundBuf(&rb); // ????????
-	xmprintf(0, "getFileViaEth ended in %d ms; bytesCounter = %u; %d packets were sent; sfwState = %d\n", 
+	xmprintf(0, "getFileViaEth ended in %d ms; bytesCounter = %u; %d packets were sent; sfwState = %d\r\n", 
 		t2 - ethFileStartTime, ethFileBytesCounter, sendFilePacketsCounter, sfwState);
 	//sfwState = sfwComplete;
 }
@@ -138,6 +140,9 @@ void sendFileViaEthHandler(GFrequest r) {
 	//	sendFileViaWifiComplete();
 	//}
 
+	
+	//xmprintf(2, "sendFileViaEthHandler: %d\r\n", r);
+
 	const int bSize = 1024;
 	unsigned int now = millis();
 
@@ -156,7 +161,7 @@ void sendFileViaEthHandler(GFrequest r) {
 			} else {  //  error: failed to read any info from the file
 				sfwState = sfwError;
 				// send error message to the client....
-				xmprintf(0, "sendFileViaEthHandler: 1: fileReadInfoSize = %d\n", fileReadInfoSize);
+				xmprintf(0, "sendFileViaEthHandler: 1: fileReadInfoSize = %d\r\n", fileReadInfoSize);
 				sendFileViaEthComplete();
 			}
 			break;
@@ -167,7 +172,7 @@ void sendFileViaEthHandler(GFrequest r) {
 				if (repeatSendCounter >= maximumRepeats) {
 					sfwState = sfwError;
 					// (try to) send error message to the client....
-					xmprintf(0, "sendFileViaWifiHandler: 2: repeatSendCounter >= maximumRepeats; repeatSendCounter = %d\n", repeatSendCounter);
+					xmprintf(0, "sendFileViaWifiHandler: 2: repeatSendCounter >= maximumRepeats; repeatSendCounter = %d\r\n", repeatSendCounter);
 
 					sendFileViaEthComplete();
 				} else {
@@ -189,10 +194,10 @@ void sendFileViaEthHandler(GFrequest r) {
 			if (ethFileBytesCounter == ethFileSize) { //  yes!
 				// send message to the client....
 				sfwState = sfwComplete;
-				xmprintf(0, "sendFileViaEthHandler: 3  sfwComplete!\n");
+				xmprintf(0, "sendFileViaEthHandler: 3  sfwComplete!\r\n");
 			} else { //  error?
 				sfwState = sfwError;
-				xmprintf(0, "sendFileViaEthHandler: 4:  sfwError! fileReadInfoSize = %d; wifiFileBytesCounter = %d; wFileSize = %d\n", 
+				xmprintf(0, "sendFileViaEthHandler: 4:  sfwError! fileReadInfoSize = %d; wifiFileBytesCounter = %d; wFileSize = %d\r\n", 
 						  fileReadInfoSize, ethFileBytesCounter, ethFileSize);
 			}
 			sendFileViaEthComplete();
@@ -204,7 +209,7 @@ void sendFileViaEthHandler(GFrequest r) {
 		if (repeatSendCounter >= maximumRepeats) {
 			sfwState = sfwError;
 			// (try to) send error message to the client....
-			xmprintf(0, "sendFileViaEthHandler: wehPleaseRepeat: sfwError! repeatSendCounter >= maximumRepeats; repeatSendCounter = %d  \n", 
+			xmprintf(0, "sendFileViaEthHandler: wehPleaseRepeat: sfwError! repeatSendCounter >= maximumRepeats; repeatSendCounter = %d  \r\n", 
 				repeatSendCounter);
 
 			sendFileViaEthComplete();

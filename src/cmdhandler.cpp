@@ -55,7 +55,7 @@ void onIncomingInfo(char* s, int size) {
 
 int processTheCommand(const char* s, int size) {
     //xmprintf(0, "got cmd size=%d (%s)", size, s);
-	xmprintf(0, "processTheCommand: (%s)\r\n", s);
+	xmprintf(2, "processTheCommand: (%s)\r\n", s);
 	if (size == 0) {
 		size = strlen(s);
 	}
@@ -98,7 +98,6 @@ int processTheCommand(const char* s, int size) {
 		changeAngle(-4.0f, -4.0f);
 		return 0;
 	}
-
 
 	if (strcmp(s, "setup") == 0) {
 		//mdPrint();

@@ -38,7 +38,7 @@ private:
 	
 	boost::asio::io_context io_context;	
 	boost::asio::ip::tcp::socket socket;
-	static const int bufSize = 1024;
+	static const int bufSize = 2050;
 	char buf[bufSize];
 	boost::system::error_code error;
 
@@ -47,7 +47,7 @@ private:
 	
 	void do_read();
 	void process(boost::system::error_code ec, std::size_t len);
-	bool checkThePacket(const char* buf, int len);
+	bool checkThePacket(char* buf, int len);
 	void readingTheFile(char* buf, int len);
 
 
