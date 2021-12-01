@@ -32,6 +32,7 @@ private:
 	volatile bool pleaseStop = false;
 	int fileSize, fileBytesCounter, packetsCounter, badPacketCounter, counterErrorCounter;
 	int incomingPacketsCounter = 0;
+	int incomingPacketSize = 0;
 	std::string currentFileName;
 	FILE*	theFile = 0;
 
@@ -47,7 +48,7 @@ private:
 	
 	void do_read();
 	void process(boost::system::error_code ec, std::size_t len);
-	bool checkThePacket(char* buf, int len);
+	bool checkThePacket(char* buf, int& len);
 	void readingTheFile(char* buf, int len);
 
 

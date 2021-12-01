@@ -59,20 +59,25 @@ void EthClient::startClient(data_1 cb, vf ping) {
 	}
 }
 
-bool EthClient::checkThePacket(char* buf, int len) {
+bool EthClient::checkThePacket(char* buf, int& len) {
 	using namespace std::chrono_literals;
-	if (len < ethHeaderSize) {
-		std::cout << "checkThePacket: len="<< len << "; packetsCounter = " << packetsCounter << std::endl;
+	if (len < ethHeaderSize) { //  too small packet
+		printf("checkThePacket: len= %d; packetsCounter = %d\r\n", len, packetsCounter);
 		return false;
 	}
-	if (strncmp(buf, "TBWF", 4) != 0) {
-		printf("checkThePacket: buf= {%s}, packetsCounter = %u\r\n", buf, packetsCounter);
+	if (strncmp(buf, "TBWF", 4) != 0) { // wrong header
+		printf("checkThePacket: no header  len = %d;  packetsCounter = %u; buf= {%s}\r\n", len, packetsCounter, buf);
+		std::this_thread::sleep_for(2ms);
+		int bs;
+		while ((bs = socket.available()) > 0) {
+			bs = socket.read_some(boost::asio::buffer((char*)(buf), bs), error);
+		}
 		return false;
 	}
-	int size; 
+
 	memcpy(&incomingPacketsCounter, buf + 8, 4);
-	memcpy(&size, buf + 4, 4);
-	if (size != (len - ethHeaderSize)) {
+	memcpy(&incomingPacketSize, buf + 4, 4);
+	if (incomingPacketSize != (len - ethHeaderSize)) {
 		
 		static const int tc = 5;
 		int tCounter = 0;
@@ -82,14 +87,14 @@ bool EthClient::checkThePacket(char* buf, int len) {
 			std::this_thread::sleep_for(2ms);
 			while ((bs = socket.available()) > 0) {
 				int haveSpaceInBuffer = bufSize - len;
-				int needed = size + ethHeaderSize - len;
+				int needed = incomingPacketSize + ethHeaderSize - len;
 				bs = (bs < haveSpaceInBuffer) ? bs : haveSpaceInBuffer;
 				bs = (bs < needed) ? bs : needed;
 				bs = socket.read_some(boost::asio::buffer((char*)(buf+len), bs), error);
 				//bs = socket.read_some((buf+len, bs), error);
 				len += bs;
 
-				if (len >= (size+ethHeaderSize)) {
+				if (len >= (incomingPacketSize +ethHeaderSize)) {
 					break;
 				}
 			}
@@ -99,16 +104,16 @@ bool EthClient::checkThePacket(char* buf, int len) {
 			tCounter++;
 		} while (tCounter < tc);
 
-		if (len >= (size+ethHeaderSize)) {
+		if (len >= (incomingPacketSize +ethHeaderSize)) {
 		} else {
-			printf("checkThePacket: size = %d; (len - wfsHeaderSize) = %d; packetsCounter = %d; incomingPacketsCounter=%d\r\n", 
-				size, (len - ethHeaderSize), packetsCounter, incomingPacketsCounter);
+			printf("checkThePacket: incomingPacketSize = %d; (len - ethHeaderSize) = %d; packetsCounter = %d; incomingPacketsCounter=%d\r\n", 
+				incomingPacketSize, (len - ethHeaderSize), packetsCounter, incomingPacketsCounter);
 			
 			return false;
 		}
 	}
 	
-	unsigned short int realCRC = CRC2::crc16(0, buf + ethHeaderSize, size);
+	unsigned short int realCRC = CRC2::crc16(0, buf + ethHeaderSize, incomingPacketSize);
 	unsigned short int incomingCRC;
 	memcpy(&incomingCRC, buf + 12, 2);
 	if (incomingCRC != realCRC) {
@@ -121,7 +126,9 @@ bool EthClient::checkThePacket(char* buf, int len) {
 	}
 	if (packetsCounter != incomingPacketsCounter) {
 		printf("checkThePacket: packetsCounter = %u, incomingPacketsCounter = %u \r\n", packetsCounter, incomingPacketsCounter);
-		packetsCounter = incomingPacketsCounter;
+		if (packetsCounter < incomingPacketsCounter) {
+			packetsCounter = incomingPacketsCounter;
+		}
 	}
 
 	return true;
@@ -218,15 +225,17 @@ void EthClient::readingTheFile(char* buf, int len) {
 					} else { //  all is good
 						readingTheLogFile = 2;
 						fileBytesCounter = 0;
-						packetsCounter = 0;
+						packetsCounter = 1;     ///   starting from #1
 						badPacketCounter = 0;
 						counterErrorCounter = 0;
 
 						memset(buf, 0, ethHeaderSize);
-						memcpy(buf, "TBWF", 4);
+						memcpy(buf, "TBWF", 4);// memcpy(buf + 8, &packetsCounter, 4);
 						int ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
 
-						printf("file %s  opened; \r\n", currentFileName.c_str());
+						printf("file %s  opened; ret = %d\r\n", currentFileName.c_str(), ret);
+						//ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
+						//ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
 					}
 				} else { //  cannot parce answer
 					std::cout << "reply parsing error: got " << buf << std::endl;
@@ -245,25 +254,24 @@ void EthClient::readingTheFile(char* buf, int len) {
 
 		case 2:
 			if (checkThePacket(buf, len)) {
-				//  send the ACK:
-				int ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
-				if (ret == 0) {
-					readingTheLogFile = 0;
-					std::cout << "write error while sending ACK to the teensy: " << error.message() << std::endl;
-				} else { //  OK!
-				}
 
 				if (incomingPacketsCounter < packetsCounter) { //  looks like we got this already
-					std::cout << "skipping the incoming packet #" << incomingPacketsCounter << 
-						"(packetsCounter = " << packetsCounter << std::endl;
+					printf("skipping the incoming packet #%u; packetsCounter=%u \r\n",
+						incomingPacketsCounter, packetsCounter);
 					counterErrorCounter += packetsCounter - incomingPacketsCounter;
-				} else {
-					fwrite(buf + ethHeaderSize, 1, len - ethHeaderSize, theFile);
 
-					fileBytesCounter += (len - ethHeaderSize);
-					++packetsCounter;
+					//  should we ping it to send another packet now????
+					break;
 				}
+				
+				int sizeToSave = incomingPacketSize;
+				assert(incomingPacketSize <= len - ethHeaderSize);
+				fwrite(buf + ethHeaderSize, 1, sizeToSave, theFile);
+				fileBytesCounter += sizeToSave;
 
+				//printf("fwrite incomingPacketsCounter=%d; packetsCounter=%d; len=%d; total=%lld; size=%d\r\n", 
+				//	incomingPacketsCounter, packetsCounter, len - ethHeaderSize, fileBytesCounter, incomingPacketSize);
+					
 				{
 					int p = fileBytesCounter * 100 / fileSize;
 					if ((p != lastReportedProgress) && ((p % 10) == 0)) {
@@ -277,21 +285,53 @@ void EthClient::readingTheFile(char* buf, int len) {
 					lastReportedProgress = 100;
 					fclose(theFile);
 					theFile = 0;
-					std::cout << "reading the file finished; fileBytesCounter = " << fileBytesCounter << 
-						"; fileSize = " << fileSize << 
-						"; incomingPacketsCounter = " << incomingPacketsCounter <<
-						"; packetsCounter = " << packetsCounter << 
-						"; badPacketCounter = " << badPacketCounter <<
-						"; counterErrorCounter = " << counterErrorCounter << std::endl;
+
+					//  send endOfReceive
+					std::this_thread::sleep_for(2ms);
+					memcpy(buf, "TEEE", 4);   buf[4] = 0;
+					int ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
+					std::this_thread::sleep_for(2ms);
+					ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
+
+
+					printf("reading the file finished; fileBytesCounter = %d; fileSize =  %d; incomingPacketsCounter =  %d; packetsCounter =  %d; \
+							badPacketCounter =  %d; counterErrorCounter =  %d\r\n",
+						fileBytesCounter, fileSize, incomingPacketsCounter, packetsCounter,
+						badPacketCounter, counterErrorCounter);
 
 					//using namespace boost::filesystem;
 					//path e = path(currentFileName).extension();
 					//if (e.string().compare(".log") == 0) { //  this was a log file
 					//	parceLogFile(currentFileName.c_str());
 					//}
+				}	else {
+					//  send the ACK:
+					memset(buf, 0, ethHeaderSize);
+					memcpy(buf, "TBWF", 4);    memcpy(buf + 8, &packetsCounter, 4);
+					++packetsCounter;
+					int ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
+					if (ret == 0) {
+						readingTheLogFile = 0;
+						std::cout << "write error while sending ACK to the teensy: " << error.message() << std::endl;
+					}
+					else { //  OK!
+					}
+
 				}
 			} else {
 				// ?
+				if (memcmp(buf, "TEEE", 4) == 0) {
+					printf("EOT detected; \r\n");
+
+					fclose(theFile);
+					theFile = 0;
+					printf("reading the file finished; fileBytesCounter = %d; fileSize =  %d; incomingPacketsCounter =  %d; packetsCounter =  %d; badPacketCounter =  %d; counterErrorCounter =  %d\r\n",
+						fileBytesCounter, fileSize, incomingPacketsCounter, packetsCounter,
+						badPacketCounter, counterErrorCounter);
+
+					readingTheLogFile = 0;
+				}
+
 				std::this_thread::sleep_for(2ms);
 				size_t bs;
 				while ((bs = socket.available()) > 0) {
@@ -302,7 +342,9 @@ void EthClient::readingTheFile(char* buf, int len) {
 
 				//  send the NAK:
 				++badPacketCounter;
+				memset(buf, 0, ethHeaderSize);
 				memcpy(buf, "TBWN", 4);
+				memcpy(buf + 8, &packetsCounter, 4);
 				int ret = socket.write_some(boost::asio::buffer(buf, ethHeaderSize), error);
 				if (ret == 0) {
 					readingTheLogFile = 0;
@@ -318,7 +360,8 @@ void EthClient::readingTheFile(char* buf, int len) {
 
 void EthClient::do_read() {
 	
-	socket.async_read_some(boost::asio::buffer(buf, bufSize - 2), 
+	//socket.async_read_some(boost::asio::buffer(buf, bufSize - 2), 
+	socket.async_read_some(boost::asio::buffer(buf, 1024),
 		[this](boost::system::error_code ec, std::size_t len) { process(ec, len);  });
 
 	if (pleaseStop) {

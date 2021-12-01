@@ -83,7 +83,7 @@ extern "C" int main(void) {
 		analogWrite(ledPin, p);
 		analogWrite(led1_pin, led1.liGet(msNow));
 
-		delay(2);
+		//delay(2);
 		axSmoothCounter = 0;
 		processMemsicData(imuInfo);
 		//if (axSmoothCounter != 0) {

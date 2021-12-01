@@ -29,7 +29,7 @@ static const int maximumRepeats = 5;
 static unsigned int fileReadInfoSize = 0;
 //unsigned char* rbb = 0;
 
-void sendFileViaEthHandler(GFrequest r);
+void sendFileViaEthHandler(GFrequest r, unsigned int pn);
 /*!
  * reply on 'get file' request.
  * 
@@ -108,9 +108,19 @@ void sendFileViaEthComplete() {
 	//removeWifiTxEmptyHandler();
 	led1.liSetMode(LedIndication::LIRamp, 0.8);
 	//resetByteRoundBuf(&rb); // ????????
-	xmprintf(0, "getFileViaEth ended in %d ms; bytesCounter = %u; %d packets were sent; sfwState = %d\r\n", 
-		t2 - ethFileStartTime, ethFileBytesCounter, sendFilePacketsCounter, sfwState);
-	//sfwState = sfwComplete;
+
+	//  send endOfTransmission
+	char buf[16];
+	memset(buf, 0, 16);
+	memcpy(buf, "TEEE", 4);			// header
+	ethFeed(buf,16);
+
+	xmprintf(0, "getFileViaEth ended in %d ms; ethFileBytesCounter = %u; ethFileSize=%u\r\n", 
+		t2 - ethFileStartTime, ethFileBytesCounter, ethFileSize);
+	
+	xmprintf(0, "sendFilePacketsCounter=%d; sfwState = %d\r\n", 
+		sendFilePacketsCounter, sfwState);
+	//sfwState = sfwComplete; may be error
 }
 
 /*!
@@ -135,11 +145,10 @@ void sendEthPacket(char* buf, int size, unsigned int counter) {
 }
 
 
-void sendFileViaEthHandler(GFrequest r) {
+void sendFileViaEthHandler(GFrequest r, unsigned int pn) {
 	//if (tcpConnections[sendFileViaWifiID] == 0) {
 	//	sendFileViaWifiComplete();
 	//}
-
 	
 	//xmprintf(2, "sendFileViaEthHandler: %d\r\n", r);
 
@@ -147,7 +156,12 @@ void sendFileViaEthHandler(GFrequest r) {
 	unsigned int now = millis();
 
 	switch (r) {
-	case gfEmpty:
+	case gfFinish:
+		xmprintf(0, "got TEEE from file receiver\r\n");
+		sendFileViaEthComplete();
+		break;
+/*
+	case gfEmpty:  //    is this not used??
 		switch (sfwState) {
 		case sfwStart: //  initial send
 			ethFileBytesCounter = 0;
@@ -182,26 +196,41 @@ void sendFileViaEthHandler(GFrequest r) {
 			break;
 		};
 		break;
-
+*/
 	case gfPleaseSendNext:
 		repeatSendCounter = 0;
-		++sendFilePacketsCounter;
+
+		if (sendFilePacketsCounter != pn) {
+			xmprintf(2, "gfPleaseSendNext: sendFilePacketsCounter = %u; pn = %u \r\n", sendFilePacketsCounter, pn);
+		}
+		if (sendFilePacketsCounter > pn) {
+			break;
+		}
+
 		fileReadInfoSize = ethFile.read(rbBuf + ethHeaderSize, bSize - ethHeaderSize);
 		ethFileBytesCounter += fileReadInfoSize;
+		++sendFilePacketsCounter;
+		
 		if (fileReadInfoSize > 0) {
+			//xmprintf(2, "send %d; size=%d; total = %d  \r\n", sendFilePacketsCounter, fileReadInfoSize, ethFileBytesCounter);
 			sendEthPacket(rbBuf, fileReadInfoSize, sendFilePacketsCounter);
-		} else { //  EOF?
-			if (ethFileBytesCounter == ethFileSize) { //  yes!
-				// send message to the client....
-				sfwState = sfwComplete;
-				xmprintf(0, "sendFileViaEthHandler: 3  sfwComplete!\r\n");
-			} else { //  error?
-				sfwState = sfwError;
-				xmprintf(0, "sendFileViaEthHandler: 4:  sfwError! fileReadInfoSize = %d; wifiFileBytesCounter = %d; wFileSize = %d\r\n", 
-						  fileReadInfoSize, ethFileBytesCounter, ethFileSize);
-			}
+		} else { //  error? unexpected EOF
+			sfwState = sfwError;
+			xmprintf(2, "gfPleaseSendNext:  unexpected EOF; fileReadInfoSize = %d; ethFileBytesCounter = %d; wFileSize = %d; pn=%u\r\n", 
+						fileReadInfoSize, ethFileBytesCounter, ethFileSize, pn);
 			sendFileViaEthComplete();
+		}		
+
+		if (ethFileBytesCounter >= ethFileSize) { //  yes!
+			xmprintf(2, "last packet was sent; ethFileBytesCounter=%lld; ethFileSize=%lld; now sendFilePacketsCounter=%u; pn = %u \r\n", 
+				ethFileBytesCounter, ethFileSize, sendFilePacketsCounter, pn);
+			// send message to the client....
+
+			//sfwState = sfwComplete;
+			//xmprintf(0, "gfPleaseSendNext: 3  sfwComplete!\r\n");
+			//sendFileViaEthComplete();
 		}
+			
 		break;
 
 	case gfPleaseRepeat:
@@ -209,11 +238,12 @@ void sendFileViaEthHandler(GFrequest r) {
 		if (repeatSendCounter >= maximumRepeats) {
 			sfwState = sfwError;
 			// (try to) send error message to the client....
-			xmprintf(0, "sendFileViaEthHandler: wehPleaseRepeat: sfwError! repeatSendCounter >= maximumRepeats; repeatSendCounter = %d  \r\n", 
+			xmprintf(0, "gfPleaseSendNext: wehPleaseRepeat: sfwError! repeatSendCounter >= maximumRepeats; repeatSendCounter = %d  \r\n", 
 				repeatSendCounter);
 
 			sendFileViaEthComplete();
 		} else {
+			xmprintf(2, "sending AGAIN packet #%u; pn=%u\r\n", sendFilePacketsCounter, pn);
 			sendEthPacket(rbBuf, fileReadInfoSize, sendFilePacketsCounter); // lets send it again
 		}
 		break;

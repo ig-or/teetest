@@ -5,6 +5,7 @@
 #include "eth.h"
 #include "teetools.h"
 #include "rbuf.h"
+#include "xstdef.h"
 #include "cmdhandler.h"
 
 enum EthStatus
@@ -133,6 +134,10 @@ void ethLoop() {
 			xmprintf(2, "ETH client disconnected \r\n");
 			//client.close();
 			client.stop();
+			if (infoHandler) {
+				infoHandler(gfFinish, 0); //   stop file transmission if client disconnects
+			}
+
 			return;
 		}
 	}
@@ -141,19 +146,28 @@ void ethLoop() {
 	}
 	int bs, bs1;
 	while ((bs = client.available()) > 0) {
-		bs1 = client.read(packetBuffer, maxPacketSize);
+		bs1 = client.read(packetBuffer, maxPacketSize-2);
+		mxat(bs1 < maxPacketSize);
 		packetBuffer[maxPacketSize-1] = 0;
+		packetBuffer[bs1] = 0;
+		
 		//xmprintf(2, "ETH: got %d bytes {%s} \r\n", bs1, packetBuffer);
 		if ((bs1 > 0)) {
 		 	if (strncmp(packetBuffer, "console", 7) == 0 ) {  //  console client connected
 				client.write("tee ", 4);
-			} else 	if ((bs1 > 4) && (memcmp(packetBuffer, "TBWF", 4) == 0)) {
-				if (infoHandler) {
-					infoHandler(gfPleaseSendNext);
-				}
-			} else if ((bs1 > 4) && (memcmp(packetBuffer, "TBWN", 4) == 0)) {
-				if (infoHandler) {
-					infoHandler(gfPleaseRepeat);
+			} else 	if (infoHandler) { 
+				unsigned int pn;
+				if ((bs1 >= 16) && (memcmp(packetBuffer, "TBWF", 4) == 0)) {
+					memcpy(&pn, packetBuffer + 8, 4);
+					infoHandler(gfPleaseSendNext, pn);
+				} else if ((bs1 >= 16) && (memcmp(packetBuffer, "TBWN", 4) == 0)) {
+					memcpy(&pn, packetBuffer + 8, 4);
+					infoHandler(gfPleaseRepeat, pn);
+				} else if ((bs1 >= 16) && (memcmp(packetBuffer, "TEEE", 4) == 0)) {
+					infoHandler(gfFinish, 0);
+				} else if (bs1 > 0) {
+					packetBuffer[maxPacketSize-1] = 0;	
+					xmprintf(2, "ETH: got %s\r\n", packetBuffer);
 				}
 			} else {
 				int bs2 = (bs1 >= maxPacketSize) ? maxPacketSize-1 : bs1;

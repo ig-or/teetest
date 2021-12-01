@@ -9,7 +9,7 @@ enum GFrequest {
 	gfEmpty
 };
 
-typedef void(*EthInfoHandler)(GFrequest);
+typedef void(*EthInfoHandler)(GFrequest, unsigned int);
 
 void ethSetup();
 void ethLoop();

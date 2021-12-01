@@ -1,6 +1,6 @@
 @echo off
 cls
-cd build1
+cd b1
 echo building the sw....
 ninja 
 if errorlevel 1 (
