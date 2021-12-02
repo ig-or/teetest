@@ -4,8 +4,8 @@ using teelog
 using xqdata
 using LinearAlgebra
 
-dir = joinpath(pwd(), "../teedata")
-file = "log_4"
+dir = joinpath(pwd(), "lib/release")
+file = "log_7"
 
 
 cuFile = joinpath(dir, file*".cu")

@@ -323,8 +323,8 @@ void imuAlgFeed(const xqm::ImuData& data) {
 						xmprintf(0, "a=%.2f [deg]; w= %.2f [deg/sec]; fi=%.3f [deg]; q = %.2f\r\n", 
 						a*Rad2Deg, wry*Rad2Deg, nia.angle*Rad2Deg, q);
 					}
-					q = nia.angle * 25.0f;
-					//setMSpeed(q, q);
+					q = nia.angle * 8.0f;
+					setMSpeed(q, q);
 
 					xqm::XQMData12 at;
 					at.timestamp = imu.timestamp;
