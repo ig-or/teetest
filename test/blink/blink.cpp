@@ -10,6 +10,7 @@
 #include "ir.h"
 #include "logfile.h"
 #include "eth.h"
+#include "power.h"
 
 #include "xmfilter.h"
 #include "imu_alg.h"
@@ -23,7 +24,30 @@ void event250ms() {	  //  call this 4  Hz
 	h_usb_serial();	
 }
 void event1s() {   //  call this 1 Hz
+	batteryUpdate();
+	//float p = getBattPercent();
+	//if (p < 10.0f) {
+	//	led1.liSetMode(LedIndication::LIRamp, 8.0);
+//
+	//}
+}
 
+void powerStatusChangeH(PowerStatus from, PowerStatus to) {
+	xmprintf(0, "POWER: %s -> %s \r\n", pwrStatusText[from], pwrStatusText[to]);
+	mxat(from != to);
+	switch(to) {
+		case pwVeryLow:
+			mdStop();
+			canUseMotors(false);
+			led1.liSetMode(LedIndication::LIRamp, 8.0);
+			break;
+
+		default:
+			if (from == pwVeryLow) {
+				canUseMotors(true);
+				led1.liSetMode(LedIndication::LIRamp, 0.8);
+			}
+	};
 }
 
 PolyFilter<3> imuAX;
@@ -56,8 +80,10 @@ extern "C" int main(void) {
 	int phase;
 	const int phaseLen = 1500;
 	int halfPhaseLen = phaseLen / 2;
-	unsigned int hsTime = 0;
+	//unsigned int hsTime = 0;
 	xmprintf(0, "\r\n4.1 started\r\n");
+
+	serPwStatusChangeHandler(powerStatusChangeH);
 
 /*
 	EventResponder er;
