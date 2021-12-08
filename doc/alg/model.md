@@ -46,4 +46,33 @@ $R_m\approx2.18$ Om
 
 
 
+##### pendulum
+some of the info is taken from http://spin7ion.ru/ru/blog/balancerBuildSteps
+
+lets consider "flat" (2D) model.
+![](pic/wheele.png)
+
+$m_p$ robot mass (without wheels)
+$m_w$ mass of the wheels
+$l$ length (height?) 
+$r$ wheel radius
+$\theta$ angle between vertical and pendulum
+$\varphi$ wheel rotation angle
+$M$ DC motor moment
+$\omega=\.\theta$ some (part of) angular velo from the IMU
+$\omega_w=\.\varphi$ wheel rotation rate
+
+
+wheel center
+$$ x = r\varphi $$
+$x_p, y_p$ - coordinates of the "upper point"
+$$  x_p=x+lsin(\theta) \\ y_p=r+lcos(\theta) $$
+
+
+the motion eq:
+$$ M=rlm_pcos(\theta)\.\omega+r^2(m_p+2m_w)\.\omega_w-rlm_psin(\theta)\theta^2  $$
+
+
+
+
 
