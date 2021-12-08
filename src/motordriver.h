@@ -15,6 +15,7 @@ void mdProcess();
 void mdPrint();
 void mdStop();
 void changeAngle(float da1, float da2);
+void canUseMotors(bool use);
 
 
 enum MMODE {

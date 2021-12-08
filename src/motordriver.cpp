@@ -50,6 +50,7 @@ constexpr float encTicks2Radians = TWO * pii / float(encNumber);
 constexpr float simpleEncSpeedK = (encTicks2Radians * 1000.0f) / encReadRate;
 
 constexpr float fStep = (static_cast<float>(mdProcessRate)) / accTime;
+static bool canRotateMotors = true;
 
 PID::PID() {
 	P = 0.1f;
@@ -294,12 +295,16 @@ void Motor::processOutput(unsigned int ms) {
 	};
 
 	//now  mcpPrev have what we need
-	analogWrite(pwmPin, mcpPrev.speed);
-	int d = mcpPrev.dir;
-	if (invDir) {
-		d = (d == LOW) ? HIGH : LOW;
+	if (canRotateMotors) {
+		analogWrite(pwmPin, mcpPrev.speed);
+		int d = mcpPrev.dir;
+		if (invDir) {
+			d = (d == LOW) ? HIGH : LOW;
+		}
+		digitalWriteFast(dirPin, d);
+	} else {
+		analogWrite(pwmPin, 0);
 	}
-	digitalWriteFast(dirPin, d);
 }
 
 void Motor::mProcess(unsigned int ms) {
@@ -495,6 +500,10 @@ void onCurrent() {
 		lfSendMessage(&tcu);
 	}
 	*/
+}
+
+void canUseMotors(bool use) {
+	canRotateMotors = use;
 }
 
 int mdSetup() {

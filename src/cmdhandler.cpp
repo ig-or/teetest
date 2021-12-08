@@ -11,7 +11,7 @@
 #include "logfile.h"
 #include "logsend.h"
 #include "eth.h"
-
+#include "power.h"
 
 static const int incomingUsbSerialInfoSize = 32;
 static char incomingUsbSerialInfo[incomingUsbSerialInfoSize];
@@ -139,6 +139,9 @@ int processTheCommand(const char* s, int size) {
 	}
 	if (strncmp(s, "get ", 4) == 0) {
 		lfGetFile(s + 4);
+	}
+	if (strcmp(s, "batt") == 0) {
+		batteryPrint();
 	}
 	
 

@@ -19,6 +19,8 @@ int ttSetup() {
 	//   from https://www.pjrc.com/teensy/td_pulse.html, see the bottom of the page
 	analogWriteResolution(pwmResolution);
     analogReadResolution(adcResolution);
+	analogReadAveraging(8);
+	
 	lfInit();  //  SD log file init; will set up sdStarted = true; if SD card present
 	ethSetup();
 
