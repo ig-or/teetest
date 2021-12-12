@@ -481,8 +481,9 @@ IntervalTimer iTimer;
 static xqm::TeeCurrent tcu;
 void onCurrent() {
 	unsigned int mks = micros();
-	m[0].current = analogRead(m[0].csPin);
-	m[1].current = analogRead(m[1].csPin);
+
+	//m[0].current = analogRead(m[0].csPin);
+	//m[1].current = analogRead(m[1].csPin);
 
 	//  test log file
 	//int bs = snprintf(curTmp, 32, "%u\t%d\t%d\n", mks, m[0].current, m[1].current);

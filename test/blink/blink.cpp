@@ -1,5 +1,6 @@
 
 #include <Arduino.h>
+#include "ADC.h"
 
 #include "ttpins.h"
 #include "ttsetup.h"
@@ -20,11 +21,28 @@
 void event100ms() {  //   call this 10 Hz
 	irProces();
 }
+
+
+static int lastBatteryInfo = 0, nextBatteryInfo = 0;
+
 void event250ms() {	  //  call this 4  Hz
 	h_usb_serial();	
+
+	if (lastBatteryInfo != nextBatteryInfo) {
+		lastBatteryInfo = nextBatteryInfo;
+		batteryUpdate(lastBatteryInfo);
+	}
 }
+
 void event1s() {   //  call this 1 Hz
-	batteryUpdate();
+	//xmprintf(0, ".");
+	//batteryUpdate();
+	//adc->readSingle(1);
+	//bool test1 = adc->adc1->startSingleRead(m1cs);
+	bool test2 = adc->adc0->startSingleRead(bvPin);
+
+	//xmprintf(0, " .%d,%d ", test1?1:2, test2?1:2);
+
 	//float p = getBattPercent();
 	//if (p < 10.0f) {
 	//	led1.liSetMode(LedIndication::LIRamp, 8.0);
@@ -48,6 +66,11 @@ void powerStatusChangeH(PowerStatus from, PowerStatus to) {
 				led1.liSetMode(LedIndication::LIRamp, 0.8);
 			}
 	};
+}
+
+
+void onAdc0() {
+	nextBatteryInfo =  adc->adc0->readSingle();
 }
 
 PolyFilter<3> imuAX;
@@ -91,6 +114,9 @@ extern "C" int main(void) {
 	MillisTimer mt;
 	mt.beginRepeating(5, er);
 */	
+
+	setAdcHandler(onAdc0, 0);
+
 	while (1) {
 
 		msNow = millis();

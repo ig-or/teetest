@@ -330,7 +330,7 @@ void memsicStop() {
 	digitalWrite(imuPwrPin, HIGH);
 	digitalWriteFast(memsicSPISelectPin, HIGH);
 	memsicDataready = 0;
-	hInfoRB1.empty();
+	hInfoRB1.clear();
 }
 
 void setupMemsicDataRate(int dataRate) {
@@ -443,7 +443,7 @@ void setupMemsic_3(int dataRate) {
 
 	//FrequencyTimer2::setPeriod(1000);
 	//FrequencyTimer2::enable();
-	hInfoRB1.empty();
+	hInfoRB1.clear();
 	memsicStatus = 2; // ?
 	
 	//xm_printf("Memsic setup finished\n");

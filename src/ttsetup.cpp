@@ -9,6 +9,36 @@
 #include "eth.h"
 #include "logfile.h"
 #include "imu_alg.h"
+#include "ADC.h"
+
+
+
+adcHandler adch[2] = {0, 0};
+
+
+void adc_isr1() {
+	//xmprintf(0, "adc isr 1 \r\n");
+	if (adch[1] == 0) {
+		adc->adc1->readSingle();
+		return;
+	}
+	adch[1]();
+}
+void adc_isr0() {
+	//xmprintf(0, "adc isr 0 \r\n");
+	if (adch[0] == 0) {
+		adc->adc0->readSingle();
+		return;
+	}
+	adch[0]();
+}
+
+void setAdcHandler(adcHandler h, int k) {
+	if ((k < 0) || (k > 1)) {
+		return;
+	}
+	adch[k] = h;
+}
 
 int ttSetup() {
 	pinMode(imuPwrPin, OUTPUT);
@@ -18,8 +48,17 @@ int ttSetup() {
 
 	//   from https://www.pjrc.com/teensy/td_pulse.html, see the bottom of the page
 	analogWriteResolution(pwmResolution);
-    analogReadResolution(adcResolution);
-	analogReadAveraging(8);
+
+	adc = new ADC();
+
+    //analogReadResolution(adcResolution);
+	adc->adc0->setResolution(adcResolution);
+	adc->adc1->setResolution(adcResolution);
+
+	adc->adc0->enableInterrupts(adc_isr0, 255);
+	adc->adc1->enableInterrupts(adc_isr1, 255);
+
+	//analogReadAveraging(8);
 	
 	lfInit();  //  SD log file init; will set up sdStarted = true; if SD card present
 	ethSetup();
