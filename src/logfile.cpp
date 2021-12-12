@@ -5,7 +5,7 @@
 #include "xmessage.h"
 #include "xmessagesend.h"
 
-const uint64_t fileSize = 10485760LL;
+const uint64_t fileSize = 104857600LL;
 constexpr uint64_t fileSize2 = fileSize - 16*512;
 // Use FIFO SDIO.
 #define SD_CONFIG SdioConfig(FIFO_SDIO)

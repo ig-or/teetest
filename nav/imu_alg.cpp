@@ -246,7 +246,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 		++imuCounter;
 		am.add(imu.a); 		wm.add(imu.w);
 
-		if (imuCounter > 100) {
+		if (imuCounter > 200) {
 			a0.ddiv(imuCounter); w0.ddiv(imuCounter);
 			sArms = am.std();      sWrms = wm.std();
 			//for (i = 0; i < 3; i++) {
@@ -265,6 +265,7 @@ void imuAlgFeed(const xqm::ImuData& data) {
 		}
 
 		break;
+
 	case iaGood:
 		switch (rState) {
 			case rsImuCalibrate:
@@ -300,17 +301,17 @@ void imuAlgFeed(const xqm::ImuData& data) {
 						break;
 				};
 				break;
+
 			case rsPlay:
 				w = imu.w - w0;   
-				ws = w.length();
+				//ws = w.length(); //  rotation rate module
 				{
 					V3 gm = imu.a;
 					gm.normalize();
 					
-					float pr = sp(gm, rXimu);
-					float q = pr * 4.1f;
+					//float pr = sp(gm, rXimu); 
+					//float q = pr * 4.1f;
 					//setMSpeed(q, q);
-
 					
 					V3 gr = Qir*gm;
 					V3 wr = Qir*w;
@@ -318,20 +319,31 @@ void imuAlgFeed(const xqm::ImuData& data) {
 					XMType wry = wr[1];
 					nia.niUpdate(a, -wry, imu.timestamp);
 
-					if (globalImuCounter % 100 == 0) {
-						//xmprintf(0, "pr = %f\r\n", pr);
-						xmprintf(0, "a=%.2f [deg]; w= %.2f [deg/sec]; fi=%.3f [deg]; q = %.2f\r\n", 
-						a*Rad2Deg, wry*Rad2Deg, nia.angle*Rad2Deg, q);
-					}
-					q = nia.angle * 8.0f;
-					setMSpeed(q, q);
+					float q = nia.angle * 6.8f;
+					float wy = wry * (-0.18f);
 
-					xqm::XQMData12 at;
+					//float q = nia.angle * 5.0f;
+					//float wy = wry * (-0.5f);
+
+					float u = q;
+					//if (((q > 0.0f) && (wy > 0.0f)) || ((q < 0.0f) && (wy < 0.0f))) {
+						u += wy;
+					//}
+
+					setMSpeed(u, u);
+
+					if (globalImuCounter % 155 == 0) {
+						xmprintf(0, "a=%.2f [deg]; w= %.2f [deg/sec]; fi=%.3f [deg]; u = %.2f\r\n", 
+							a*Rad2Deg, wry*Rad2Deg, nia.angle*Rad2Deg, u);
+					}
+
+					//  logging: 
+					xqm::XQMData16 at;
 					at.timestamp = imu.timestamp;
 					at.id = 1;
-					at.data[0] = a;
-					at.data[1] = wry;
-					at.data[2] = nia.angle;
+					at.data[0] = a;     // 3
+					at.data[1] = wry;    // 4
+					at.data[2] = nia.angle;    // 5
 					at.data[3] = q;
 
 					at.data[4] = wr[0];
@@ -341,6 +353,13 @@ void imuAlgFeed(const xqm::ImuData& data) {
 					at.data[7] = gr[0];
 					at.data[8] = gr[1];
 					at.data[9] = gr[2];
+
+					at.data[10] = (m[0].encPos + m[1].encPos) * 0.5f;  // 13
+					at.data[11] = (m[0].encSpeed + m[1].encSpeed) * 0.5f;
+					at.data[12] = (m[0].encSpeedSimple + m[1].encSpeedSimple) * 0.5f;
+					at.data[13] = wy;  // 16
+					at.data[14] = 0.0f;  // 17
+					at.data[15] = u;  // 18
 
 					lfSendMessage(&at);
 				}
