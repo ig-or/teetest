@@ -101,9 +101,21 @@ $$T=\frac{m_w w_w^2}{2}(r^2+r_i^2)+\frac{m_p}{2}(l^2w_p^2+  r^2w_w^2+2rlw_ww_pco
 coordinates:
 $$q=\begin{pmatrix}  \varphi \\ \theta \end{pmatrix}$$
 
-$$\frac{d}{dt}\frac{\delta T}{\delta  \varphi}=0$$
-$$\frac{\delta T}{\delta w_w}=m_w(r^2+r_i^2)w_w\varepsilon_w$$
+$$\frac{\delta T}{\delta  \varphi}=0$$
+$$\frac{\delta T}{\delta \.\varphi}=\frac{\delta T}{\delta w_w}=(m_w(r^2+r_i^2)+m_pr^2)w_w+m_prlw_pcos(\theta)$$
 
+$$\frac{d}{dt}\frac{\delta T}{\delta \.\varphi}=(m_w(r^2+r_i^2)+m_pr^2)\varepsilon_w+m_prl(\varepsilon_pcos(\theta)-w_p^2sin(\theta))$$
+
+$$\frac{\delta T}{\delta \theta}=-m_prlw_ww_psin(\theta)$$
+
+$$(w_ww_p)'_t=\varepsilon_ww_p + \varepsilon_pw_w$$
+$$((w_ww_p)sin(\theta))'_t=(\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww_p^2cos(\theta)$$
+$$\frac{d}{dt}\frac{\delta T}{\delta \theta}=-m_prl((\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww_p^2cos(\theta))$$
+
+forces:
+$$\delta s_1=r\varphi$$
+$$\delta A_1=P_1\delta \varphi$$
+$$P_1=M$$
 
 
 
