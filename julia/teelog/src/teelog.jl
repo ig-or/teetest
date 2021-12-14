@@ -10,7 +10,7 @@ using LinearAlgebra
 #using Libdl
 
 function __init__()
-	startXqLoader(0, libFile = "/home/igor/space/teetest/lib/libxqloader.so")
+	startXqLoader(0, libFile = "/home/igor/space/teetest/lib/release/libxqloader.so")
 	qstart()
 	#qstart(debug = true, qwtw_test = true, libraryName = raw"C:\Users\isandler\space\qwtw\build1\qwtw\proclib\Release\qwtw")
 	qsmw()
@@ -141,13 +141,13 @@ export plotIMU
 # alg 1
 
 function plotAlg(file::String)
-	d12 =  xqget(file, 1000.0);
-	w = size(d12)[2]
+	d16 =  xqget(file, 1000.0);
+	w = size(d16)[2]
 	mn = Dict()
 	mIndex = 0
-	n = size(d12)[1]
+	n = size(d16)[1]
 	for i=1:n
-		id = Int32(d12[i, 2])
+		id = Int32(d16[i, 2])
 		if id > mIndex
 			mIndex = id
 		end
@@ -157,17 +157,17 @@ function plotAlg(file::String)
 			mn[id] = 1
 		end
 	end
-	size(d12)
+	size(d16)
 	md = Dict()
 	for id in mn
-		#@printf "id=%d (%d)\n" id[1] id[2]
+		@printf "id=%d (%d)\n" id[1] id[2]
 		md[id[1]] = zeros(id[2], w)
 	end
 	nx = zeros(Int32, mIndex)
 	for i=1:n
-		id = Int32(d12[i, 2])
+		id = Int32(d16[i, 2])
 		nx[id] += 1
-		md[id][nx[id], :] = d12[i, :]
+		md[id][nx[id], :] = d16[i, :]
 	end
 
 	m = md[1]
@@ -177,6 +177,33 @@ function plotAlg(file::String)
 	qplot1(tm, m[:, 4], "wry", "-ek", 2)
 	qplot1(tm, m[:, 5], "nia.angle", "-em", 3)
 	qtitle("alg nia")
+
+	x1 = sqrt.(abs.(m[:, 6] .* m[:, 16]))
+	for i=1:length(x1)
+		if m[i, 6] < 0.0
+			x1[i] = -x1[i]
+		end
+	end
+	x = x1
+	
+	qfigure()
+	qplot1(tm, m[:, 6], "q", "-eb", 3)
+	qplot1(tm, m[:, 16], "wy", "-ek", 3)
+	qplot1(tm, m[:, 18], "u", "-em", 3)
+	qplot1(tm, x, "x", "-er", 3)
+	qxlabel("seconds"); 
+	qtitle("PID")
+
+	qfigure()
+	qplot1(tm, m[:, 15], "enc speed simple", "-ek", 3)
+	qplot1(tm, m[:, 14], "enc speed", "-eb", 3)
+	qxlabel("seconds"); 
+	qtitle("encoder velo")
+
+	qfigure()
+	qplot1(tm, m[:, 13], "enc pos", "-ek", 3)
+	qxlabel("seconds"); 
+	qtitle("encoder pos")
 
 
 end

@@ -21,5 +21,5 @@ PowerStatus getPowerStatus();
 void serPwStatusChangeHandler(OnPowerStatusChange h);
 float getBattVoltage();
 float getBattPercent();
-void batteryUpdate();
+void batteryUpdate(int a);
 void batteryPrint();

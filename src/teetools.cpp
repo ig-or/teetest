@@ -7,6 +7,8 @@
 #include "motordriver.h"
 #include "eth.h"
 
+#include "ADC.h"
+
 uint32_t msNow = 0;
 uint32_t mksNow = 0;
 
@@ -208,4 +210,7 @@ writeHere:
 
 	return 0;
 }
+
+
+ADC* adc = 0;
 

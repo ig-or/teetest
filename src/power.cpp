@@ -1,9 +1,11 @@
 
 
 #include <Arduino.h>
+
 #include "power.h"
 #include "teetools.h"
 #include "ttpins.h"
+
 
 static constexpr float R1=220000.0f*1.0000f;
 static constexpr float R2=47000.0f*1.0f;
@@ -48,17 +50,17 @@ void serPwStatusChangeHandler(OnPowerStatusChange h) {
 	pHandler = h;
 }
 
-void batteryUpdate() {
+void batteryUpdate(int a) {
 	//return;
 	int i;
-	int v = 0;
-	for (i = 0; i < 1; i++) {
-		v += analogRead(bvPin);
-	}
-	vAdc = (((float)(v))/1.0f) * a2mv; //  millivolts
+
+	float vf = static_cast<float>(a);
+	vAdc = (vf/1.0f) * a2mv; //  millivolts
 
 	batteryVoltage = vAdc * ((R1+R2)/R2); 
 	battPersent = (batteryVoltage - minVoltage) * 100.0f/(maxVoltage - minVoltage);
+
+	return;
 
 	PowerStatus pPrevStatus = pStatus;
 	switch (pStatus) {

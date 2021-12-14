@@ -40,7 +40,7 @@ int analogRead(int pin) {return 0;}
 
 const int maxMotorPWM = maxPWM * 0.95;
 //const unsigned int minControlPeriod = 250; //  mks
-constexpr float accTime = 50; // 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
+constexpr float accTime = 25.0f; // 5000.0f; // time for acceleration from 0.0 to 1.0, in milliseconds
 constexpr int mdProcessRate = 2; // [ms]
 constexpr int encReadRate = 2; // [ms]
 constexpr float fEncReadRate = float(encReadRate) * 0.001f;
@@ -274,6 +274,7 @@ void Motor::processOutput(unsigned int ms) {
 			mcpPrev.mcUpdate(x, ms, false);
 		}
 		break;
+
 	case mAngle:
 		if ((processCounter % encReadRate) != 0) {   //  encoder
 			encPos = enc.read();
@@ -446,6 +447,7 @@ void mdProcess(EventResponderRef r) {
 	}
 	*/
 
+/*    // log binary    
 	if ((lfState == lfSGood) && lfWriting) {
 		if ((m[0].processCounter % mdProcessRate) == 0) { //    only if motor state changed
 			for (int i = 0; i < 2; i++) {
@@ -464,7 +466,7 @@ void mdProcess(EventResponderRef r) {
 			}
 		}
 	}
-	
+	*/
 }
 #endif
 
@@ -481,8 +483,9 @@ IntervalTimer iTimer;
 static xqm::TeeCurrent tcu;
 void onCurrent() {
 	unsigned int mks = micros();
-	m[0].current = analogRead(m[0].csPin);
-	m[1].current = analogRead(m[1].csPin);
+
+	//m[0].current = analogRead(m[0].csPin);
+	//m[1].current = analogRead(m[1].csPin);
 
 	//  test log file
 	//int bs = snprintf(curTmp, 32, "%u\t%d\t%d\n", mks, m[0].current, m[1].current);

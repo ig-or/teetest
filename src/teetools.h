@@ -68,3 +68,8 @@ struct TTime {
 int xmprintf(int dst, const char* s, ...);
 void printfToEth(bool x);
 
+class ADC;
+extern ADC* adc;
+typedef void(*adcHandler)(void);
+void setAdcHandler(adcHandler h, int k);
+
