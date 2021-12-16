@@ -116,10 +116,11 @@ $$((w_ww_p)sin(\theta))'_t=(\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww
 $$\frac{d}{dt}\frac{\delta T}{\delta \theta}=-m_prl((\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww_p^2cos(\theta))$$
 
 $$
-\frac{d}{dt}\frac{\delta T}{\delta \.\theta}=m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_wsin(\theta)\varepsilon_p)
+\frac{d}{dt}\frac{\delta T}{\delta \.\theta}=m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_ww_psin(\theta))
 $$
 
 forces:
+
 $$\delta s_1=r\delta \varphi$$
 $$\delta A_1=P_1\delta \varphi$$
 $$P_1=M$$
@@ -134,9 +135,14 @@ $$\frac{d}{dt}\frac{\delta T}{\delta \.q}-\frac{\delta T}{\delta q}=Q$$
 
 $$(m_w(r^2+r_i^2)+m_pr^2)\varepsilon_w+m_prl(\varepsilon_pcos(\theta)-w_p^2sin(\theta))=M$$
 
-$$m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_wsin(\theta)\varepsilon_p)+m_prlw_ww_psin(\theta)=m_pglsin(\theta)$$
+$$m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_ww_psin(\theta))+m_prlw_ww_psin(\theta)=m_pglsin(\theta)$$
+
+$$m_pl^2\varepsilon_p+m_prl\varepsilon_wcos(\theta)-m_pglsin(\theta)=0$$
+
+$$l\varepsilon_p+r\varepsilon_wcos(\theta)-gsin(\theta)=0$$
 
 
+from the http://spin7ion.ru/ru/blog/balancerBuildSteps, a bit different result:
 
 $$ M=rlm_pcos(\theta)\.\omega+r^2(m_p+2m_w)\.\omega_w-rlm_psin(\theta)\theta^2  $$
 
