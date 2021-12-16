@@ -108,18 +108,36 @@ $$\frac{d}{dt}\frac{\delta T}{\delta \.\varphi}=(m_w(r^2+r_i^2)+m_pr^2)\varepsil
 
 $$\frac{\delta T}{\delta \theta}=-m_prlw_ww_psin(\theta)$$
 
+$$\frac{\delta T}{\delta \.\theta}=\frac{\delta T}{\delta w_p}=m_pl^2w_p+m_prlw_wcos(\theta)     $$
+
+Just in case that we need $\frac{d}{dt}\frac{\delta T}{\delta \theta}:$
 $$(w_ww_p)'_t=\varepsilon_ww_p + \varepsilon_pw_w$$
 $$((w_ww_p)sin(\theta))'_t=(\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww_p^2cos(\theta)$$
 $$\frac{d}{dt}\frac{\delta T}{\delta \theta}=-m_prl((\varepsilon_ww_p + \varepsilon_pw_w)sin(\theta)+w_ww_p^2cos(\theta))$$
 
+$$
+\frac{d}{dt}\frac{\delta T}{\delta \.\theta}=m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_wsin(\theta)\varepsilon_p)
+$$
+
 forces:
-$$\delta s_1=r\varphi$$
+$$\delta s_1=r\delta \varphi$$
 $$\delta A_1=P_1\delta \varphi$$
 $$P_1=M$$
 
+$$\delta s_2=l \delta \theta$$
+$$\delta A_2=P_2\delta \theta=m_pgl\delta \theta sin(\theta)$$
+$$P_2=m_pglsin(\theta)$$
 
 
 the motion eq:
+$$\frac{d}{dt}\frac{\delta T}{\delta \.q}-\frac{\delta T}{\delta q}=Q$$
+
+$$(m_w(r^2+r_i^2)+m_pr^2)\varepsilon_w+m_prl(\varepsilon_pcos(\theta)-w_p^2sin(\theta))=M$$
+
+$$m_pl^2\varepsilon_p+m_prl(\varepsilon_wcos(\theta)-w_wsin(\theta)\varepsilon_p)+m_prlw_ww_psin(\theta)=m_pglsin(\theta)$$
+
+
+
 $$ M=rlm_pcos(\theta)\.\omega+r^2(m_p+2m_w)\.\omega_w-rlm_psin(\theta)\theta^2  $$
 
 
