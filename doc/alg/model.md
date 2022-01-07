@@ -1,3 +1,23 @@
+---
+title: "?"
+documentclass: extarticle
+fontsize: 12pt
+header-includes: 
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyfoot[C]{foo footer}
+  - \fancyfoot[R]{\thepage}
+output: 
+ pdf_document:
+  geometry: margin=0.4in
+  toc: false
+  toc_depth: 3
+  footer: page
+  number_sections: true
+  linewrap: preserve
+  highlight: tango
+---
+
 
 ##### DC motor
 ###### formulas
@@ -26,11 +46,11 @@ $I_0$ - no-load current (0.15A)
 
 In case $L_m\approx0$, 
 $$
-M=\frac{K_m}{R_m}(U - K_e\omega)
+M=\frac{K_m}{R_m}(U - K_e\omega_m)
 \tag{1.4}
 $$
 $$
-U=\frac{R_m}{K_m}M+K_e\omega
+U=\frac{R_m}{K_m}M+K_e\omega_m
 \tag{1.5}
 $$
 
@@ -61,8 +81,8 @@ $r$ wheel radius
 $\theta$ angle between vertical and pendulum
 $\varphi$ wheel rotation angle
 $M$ DC motor moment
-$w=w_p=\.\theta$ some (part of the) rotation rate from the IMU
-$w_w=\.\varphi$ wheel rotation rate
+$ w = w_p = \.\theta $ some (part of the) rotation rate from the IMU
+$ w_w = \.\varphi $ wheel rotation rate
 
 
 wheel center
@@ -122,13 +142,16 @@ $$
 forces:
 
 $$\delta s_1=r\delta \varphi$$
+
 $$\delta A_1=P_1\delta \varphi$$
+
 $$P_1=M$$
 
 $$\delta s_2=l \delta \theta$$
-$$\delta A_2=P_2\delta \theta=m_pgl\delta \theta sin(\theta)$$
-$$P_2=m_pglsin(\theta)$$
 
+$$\delta A_2=P_2\delta \theta=m_pgl\delta \theta sin(\theta)$$
+
+$$P_2=m_pglsin(\theta)$$
 
 the motion eq:
 $$\frac{d}{dt}\frac{\delta T}{\delta \.q}-\frac{\delta T}{\delta q}=Q$$
@@ -144,7 +167,9 @@ $$l\varepsilon_p+r\varepsilon_wcos(\theta)-gsin(\theta)=0$$
 
 from the http://spin7ion.ru/ru/blog/balancerBuildSteps, a bit different result:
 
-$$ M=rlm_pcos(\theta)\.\omega+r^2(m_p+2m_w)\.\omega_w-rlm_psin(\theta)\theta^2  $$
+$$rlm_pcos(\theta)\varepsilon_p+r^2(m_p+2m_w)\varepsilon_w-rlm_psin(\theta)\theta^2=M_k  $$
+
+$$\varepsilon_wcos(\theta)lm_pr-m_pglsin(\theta)+2m_pl^2\varepsilon_p=0$$
 
 
 

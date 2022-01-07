@@ -9,4 +9,7 @@ lib
 *.bak
 *.zip
 Manifest.toml
+tex2pdf.*
+*.html
+
 
