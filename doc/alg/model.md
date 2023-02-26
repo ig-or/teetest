@@ -171,6 +171,13 @@ $$rlm_pcos(\theta)\varepsilon_p+r^2(m_p+2m_w)\varepsilon_w-rlm_psin(\theta)\thet
 
 $$\varepsilon_wcos(\theta)lm_pr-m_pglsin(\theta)+2m_pl^2\varepsilon_p=0$$
 
+what are the $\varepsilon_w$ and $\varepsilon_p$:
+$$\varepsilon_w=\frac{gsin(\theta)-l\varepsilon_p}{rcos(\theta)}$$
+
+$$(m_w(r^2+r_i^2)+m_pr^2)\frac{gsin(\theta)-l\varepsilon_p}{rcos(\theta)}+m_prl(\varepsilon_pcos(\theta)-w_p^2sin(\theta))=M$$
+
+$$(m_w(r^2+r_i^2)+m_pr^2)tan(\theta)\frac{g}{r}-(m_w(r^2+r_i^2)+m_pr^2)\frac{}{}$$
+
 
 
 
