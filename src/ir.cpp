@@ -3,6 +3,8 @@
  */
 
 #include <Arduino.h>
+
+#define SUPPRESS_ERROR_MESSAGE_FOR_BEGIN
 #include <IRremote.h>
 
 #include "cmdhandler.h"
@@ -12,7 +14,7 @@
 #include "cmdhandler.h"
 
 static  IRrecv irrecv(IR_RECV_PIN);
-static decode_results irResults;
+//static decode_results irResults;
 const int ciSize = 10;	///< how many buttons we know
 const int cInterval_ms = 250; ///< minimum time between the commans
 uint32_t ciTime[ciSize]; ///< command times in milliseconds
@@ -46,12 +48,17 @@ void irSetup() {
 }
 
 void irProces() {
-	if (irrecv.decode(&irResults)) {
+	//if (irrecv.decode(&irResults)) {
+	if (irrecv.decode()) {
 		int cIndex = -1;
     	//Serial.println(results.value, HEX);
-		unsigned long code = irResults.value;
-		//xmprintf(0, "IR: %x\r\n", code);
+		//unsigned long code = irResults.value;
+		
     	irrecv.resume(); // Receive the next value
+		unsigned long code = IrReceiver.decodedIRData.command;
+		xmprintf(0, "IR: cmd: %x;  addr: %x;  numberOfBits=%d; flags = %u; protocol = %d\r\n", 
+			code, IrReceiver.decodedIRData.address, IrReceiver.decodedIRData.numberOfBits,
+			IrReceiver.decodedIRData.flags, IrReceiver.decodedIRData.protocol);
 
 		switch (code) {
 			case VOLm:  cIndex = 0; break;

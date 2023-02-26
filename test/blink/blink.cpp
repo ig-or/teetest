@@ -86,6 +86,16 @@ void imuInfo(const xqm::ImuData& imu) {
 }
 
 extern "C" int main(void) {
+
+	pinMode(13, OUTPUT);
+	while (1) {
+		digitalWriteFast(13, HIGH);
+		delay(1500);
+		digitalWriteFast(13, LOW);
+		delay(1500);
+	}
+
+
 	ttSetup();
 	imuAX.pfInit(ca3_25_100, cb3_25_100);
 

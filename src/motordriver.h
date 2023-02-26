@@ -100,10 +100,14 @@ struct Motor {
 	int targetEnc;
 	float mc_e, mc_u;
 
-	Motor();
+	/**
+	 ep1 encoder pin 1
+	 ep2 encoder pin 2
+	 */
+	Motor(int ep1, int ep2);
 	void mSoftReset();
 	void setPins(int pwm, int dir, int slp, int flt, int cs);
-	void setEncPins(int p1, int p2);
+	//void setEncPins(int p1, int p2);
 	void print();
 
 	void updateEncSpeed();

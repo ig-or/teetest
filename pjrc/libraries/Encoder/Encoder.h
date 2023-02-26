@@ -76,11 +76,7 @@ typedef struct {
 class Encoder
 {
 public:
-	Encoder() {}
 	Encoder(uint8_t pin1, uint8_t pin2) {
-		eSetup(pin1, pin2);
-	}
-	void eSetup(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
@@ -112,37 +108,33 @@ public:
 
 
 #ifdef ENCODER_USE_INTERRUPTS
-
 	inline int32_t read() {
-		bool irq;
 		if (interrupts_in_use < 2) {
-			irq = disableInterrupts();
+			noInterrupts();
 			update(&encoder);
 		} else {
-			irq = disableInterrupts();
+			noInterrupts();
 		}
 		int32_t ret = encoder.position;
-		enableInterrupts(irq);
+		interrupts();
 		return ret;
 	}
 	inline int32_t readAndReset() {
-		bool irq;
 		if (interrupts_in_use < 2) {
-			irq = disableInterrupts();
+			noInterrupts();
 			update(&encoder);
 		} else {
-			irq = disableInterrupts();
+			noInterrupts();
 		}
 		int32_t ret = encoder.position;
 		encoder.position = 0;
-		enableInterrupts(irq);
+		interrupts();
 		return ret;
 	}
 	inline void write(int32_t p) {
-		bool irq;
-		irq = disableInterrupts();
+		noInterrupts();
 		encoder.position = p;
-		enableInterrupts(irq);
+		interrupts();
 	}
 #else
 	inline int32_t read() {
@@ -218,7 +210,11 @@ public:
 	// update() is not meant to be called from outside Encoder,
 	// but it is public to allow static interrupt routines.
 	// DO NOT call update() directly from sketches.
+#if defined(IRAM_ATTR)
+	static IRAM_ATTR void update(Encoder_internal_state_t *arg) {
+#else
 	static void update(Encoder_internal_state_t *arg) {
+#endif
 #if defined(__AVR__)
 		// The compiler believes this is just 1 line of code, so
 		// it will inline this function into each interrupt

@@ -17,6 +17,9 @@ constexpr float a2ma = 50 * 3300.0f / maxADC; // translation from adc reading in
 
 void logSetup(const char* fileName);
 
+bool disableInterrupts();
+void enableInterrupts(bool doit);
+
 struct LedIndication {
 	enum LIMode {
 		LIRamp,

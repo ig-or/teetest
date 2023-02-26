@@ -140,13 +140,16 @@ void MotorControlParams::mcUpdate(float mSpeed, unsigned int time, bool di) {
 }
 
 
-Motor::Motor() {
+Motor::Motor(int ep1, int ep2) : enc(ep1, ep2) {
+	encPin1 = ep1;
+	encPin2 = ep2;
 	mmode = mLinear; // mLinear; // mAngle
 	changeAngleFlag = 0;
 	targetEnc = 0;
 	mc_e = 0.0;
 	mc_u = 0.0;
 }
+
 void Motor::mSoftReset() {
 	mState = msCalibrate;
 	processCounter = 0; bigCurrentCounter = 0;
@@ -171,9 +174,10 @@ void Motor::mSoftReset() {
 void Motor::setPins(int pwm, int dir, int slp, int flt, int cs) {
 	pwmPin = pwm; dirPin = dir; slpPin = slp; fltPin = flt; csPin = cs;
 }
-void Motor::setEncPins(int p1, int p2) {
-	encPin1 = p1;   encPin2 = p2;
-}
+//void Motor::setEncPins(int p1, int p2) {
+//	encPin1 = p1;   encPin2 = p2;
+//}
+
 void Motor::print() {
 	xmprintf(0, "motor%d%s \tspeed=%.2f/%.2f; enc=%d fCurrent=%.1f mA, maxFCurrent=%.1f mA  [%d] mmode=%d \t", 
 		id,  
@@ -397,11 +401,11 @@ void Motor::mSetup(int id_) {
 	pinMode(slpPin, OUTPUT);
 	digitalWriteFast(slpPin, HIGH);  
 
-	enc.eSetup(encPin1, encPin2);
+	//enc.eSetup(encPin1, encPin2);
 #endif
 }
 
-Motor m[2];
+Motor m[2] = {Motor(m1encA, m1encB), Motor(m2encA, m2encB)};
 
 //void setMotorParams(int index, float mSpeed) {
 //	m[index].mcp.mcUpdate(mSpeed);
@@ -427,7 +431,7 @@ void mdStop() {
 	m[1].mStop();
 }
 
-static xqm::TeeMotor mInfo[2];
+//static xqm::TeeMotor mInfo[2];
 #ifndef PCTEST
 void mdProcess(EventResponderRef r) {
 	unsigned int ms = millis();
@@ -480,9 +484,10 @@ MillisTimer mt;
 IntervalTimer iTimer;
 #endif
 
-static xqm::TeeCurrent tcu;
+//static xqm::TeeCurrent tcu;
 void onCurrent() {
 	unsigned int mks = micros();
+	mks = mks;
 
 	//m[0].current = analogRead(m[0].csPin);
 	//m[1].current = analogRead(m[1].csPin);
@@ -513,8 +518,8 @@ int mdSetup() {
 	m[0].setPins(m1pwm, m1dir, m1slp, m1flt, m1cs);
 	m[1].setPins(m2pwm, m2dir, m2slp, m2flt, m2cs);
 
-	m[0].setEncPins(m1encA, m1encB);
-	m[1].setEncPins(m2encA, m2encB);
+	//m[0].setEncPins(m1encA, m1encB);
+	//m[1].setEncPins(m2encA, m2encB);
 
 	m[0].mSetup(1);
 	m[1].mSetup(2);

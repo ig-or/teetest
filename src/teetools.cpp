@@ -211,6 +211,16 @@ writeHere:
 	return 0;
 }
 
+bool disableInterrupts() {
+	uint32_t primask;
+	__asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
+	__disable_irq();
+	return (primask == 0) ? true : false;
+}
+void enableInterrupts(bool doit) {
+	if (doit) __enable_irq();
+}
+
 
 ADC* adc = 0;
 

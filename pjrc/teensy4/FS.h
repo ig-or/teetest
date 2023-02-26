@@ -74,6 +74,10 @@ protected:
 	virtual bool isDirectory() = 0;
 	virtual File openNextFile(uint8_t mode=0) = 0;
 	virtual void rewindDirectory(void) = 0;
+	virtual bool getCreateTime(DateTimeFields &tm) { return false; }
+	virtual bool getModifyTime(DateTimeFields &tm) { return false; }
+	virtual bool setCreateTime(const DateTimeFields &tm) { return false; }
+	virtual bool setModifyTime(const DateTimeFields &tm) { return false; }
 private:
 	friend class File;
 	unsigned int refcount = 0; // number of File instances referencing this FileImpl
@@ -93,13 +97,13 @@ private:
 
 
 // Programs and libraries using files do so with instances of File.
+//
+class File final : public Stream {
 // File is merely a pointer to a FileImpl instance.  More than one
 // instance of File may reference the same FileImpl.  File may also
 // reference nothing (the pointer is NULL), as a result of having
 // closed the file or the File instance created without referencing
 // anything.
-//
-class File final : public Stream {
 public:
 	// Empty constructor, used when a program creates a File variable
 	// but does not immediately assign or initialize it.
@@ -155,12 +159,20 @@ public:
 		//Serial.printf("File dtor %x, refcount=%d\n", (int)f, get_refcount());
 		if (f) dec_refcount();
 	}
+	// Read bytes from a file.  Returns the number of bytes actually read.
 	size_t read(void *buf, size_t nbyte) {
 		return (f) ? f->read(buf, nbyte) : 0;
 	}
+	// Write bytes to a file
+	virtual size_t write(const uint8_t *buf, size_t size) {
+		// override print version
+		return (f) ? f->write((void*)buf, size) : 0;
+	}
+	// Write bytes to a file
 	size_t write(const void *buf, size_t size) {
 		return (f) ? f->write(buf, size) : 0;
 	}
+	// Returns the number of bytes which may be read from a file
 	int available() {
 		return (f) ? f->available() : 0;
 	}
@@ -202,6 +214,18 @@ public:
 	}
 	void rewindDirectory(void) {
 		if (f) f->rewindDirectory();
+	}
+	bool getCreateTime(DateTimeFields &tm) {
+		return (f) ? f->getCreateTime(tm) : false;
+	}
+	bool getModifyTime(DateTimeFields &tm) {
+		return (f) ? f->getModifyTime(tm) : false;
+	}
+	bool setCreateTime(const DateTimeFields &tm) {
+		return (f) ? f->setCreateTime(tm) : false;
+	}
+	bool setModifyTime(const DateTimeFields &tm) {
+		return (f) ? f->setModifyTime(tm) : false;
 	}
 	bool seek(uint64_t pos) {
 		return seek(pos, SeekSet);
@@ -254,6 +278,37 @@ public:
 	virtual bool rmdir(const char *filepath) = 0;
 	virtual uint64_t usedSize() = 0;
 	virtual uint64_t totalSize() = 0;
+	virtual bool format(int type=0, char progressChar=0, Print& pr=Serial) {
+		return false;
+	}
+	virtual bool mediaPresent() {
+		return true;
+	}
+	File open(const String &filepath, uint8_t mode = FILE_READ) {
+		// for compatibility with String input
+		return open(filepath.c_str(), mode);
+	}
+	bool exists(const String &filepath) {
+		return exists(filepath.c_str());
+	}
+	bool mkdir(const String &filepath) {
+		return mkdir(filepath.c_str());
+	}
+	bool rename(const String &oldfilepath, const char *newfilepath) {
+		return rename(oldfilepath.c_str(), newfilepath);
+	}
+	bool rename(const char *oldfilepath, const String &newfilepath) {
+		return rename(oldfilepath, newfilepath.c_str());
+	}
+	bool rename(const String &oldfilepath, const String &newfilepath) {
+		return rename(oldfilepath.c_str(), newfilepath.c_str());
+	}
+	bool remove(const String &filepath) {
+		return remove(filepath.c_str());
+	}
+	bool rmdir(const String &filepath) {
+		return rmdir(filepath.c_str());
+	}
 };
 
 

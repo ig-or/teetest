@@ -191,7 +191,7 @@ public:
 			#endif
 			{
 				uint8_t tmp = SREG;
-				bool irq = disableInterrupts();
+				cli();
 				interruptSave = tmp;
 			}
 		}

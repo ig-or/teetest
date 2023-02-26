@@ -8,13 +8,14 @@ const QuadEncoder::ENC_Channel_t QuadEncoder::channel[] = {
 	{1, &IMXRT_ENC1, IRQ_ENC1, isrEnc1, 66, 67, 68, 69, 70,&CCM_CCGR4,CCM_CCGR4_ENC1(CCM_CCGR_ON)},
 	{2, &IMXRT_ENC2, IRQ_ENC2, isrEnc2, 71, 72, 73, 74, 75,&CCM_CCGR4,CCM_CCGR4_ENC2(CCM_CCGR_ON)},
 	{3, &IMXRT_ENC3, IRQ_ENC3, isrEnc3, 76, 77, 78, 79, 80,&CCM_CCGR4,CCM_CCGR4_ENC3(CCM_CCGR_ON)},
-	{4, &IMXRT_ENC4, IRQ_ENC4, isrEnc4, 81, 82, 83, 84, 95,&CCM_CCGR4,CCM_CCGR4_ENC4(CCM_CCGR_ON)}
+	{4, &IMXRT_ENC4, IRQ_ENC4, isrEnc4, 81, 82, 83, 84, 85,&CCM_CCGR4,CCM_CCGR4_ENC4(CCM_CCGR_ON)}
 };
 const uint8_t QuadEncoder::_channel_count =  (sizeof(QuadEncoder::channel)/sizeof(QuadEncoder::channel[0]));
 
 //xbara1 pin config
-// idx, pin, *reg, alt
-#if defined( ARDUINO_TEENSY40 ) || defined( ARDUINO_TEENSY_MICROMOD)
+// idx, pin, *reg, alt,xbarIO, xbarMUX
+
+#if defined( ARDUINO_TEENSY40)
 const  QuadEncoder::ENC_Hardware_t QuadEncoder::hardware[] = {	
 	{0, 0, &CORE_XIO_PIN0, 1, 17, 1},	{1, 1, &CORE_XIO_PIN1, 1, 16, 0},
 	{2, 2, &CORE_XIO_PIN2, 3, 6, 0},	{3, 3, &CORE_XIO_PIN3, 3, 7, 0},
@@ -34,6 +35,18 @@ const  QuadEncoder::ENC_Hardware_t QuadEncoder::hardware[] = {
 	{10, 33, &CORE_XIO_PIN33, 3, 9, 0},	{11, 36, &CORE_XIO_PIN36, 1, 16, 1},
 	{12, 37, &CORE_XIO_PIN37, 1, 17, 3}
 
+};
+#endif
+
+#if defined( ARDUINO_TEENSY_MICROMOD)
+const  QuadEncoder::ENC_Hardware_t QuadEncoder::hardware[] = {	
+	{0, 0, &CORE_XIO_PIN0, 1, 17, 1},	{1, 1, &CORE_XIO_PIN1, 1, 16, 0},
+	{2, 2, &CORE_XIO_PIN2, 3, 6, 0},	{3, 3, &CORE_XIO_PIN3, 3, 7, 0},
+	{4, 4, &CORE_XIO_PIN4,3, 8, 0},		{5, 5, &CORE_XIO_PIN5, 3, 17, 0},
+	{6, 7, &CORE_XIO_PIN7, 1, 15, 1},	{7, 8, &CORE_XIO_PIN8, 1, 14, 1},
+	{8, 30, &CORE_XIO_PIN30, 1, 23, 0},	{9, 31, &CORE_XIO_PIN31, 1, 22, 0},
+	{10, 33, &CORE_XIO_PIN33, 3, 9, 0},	{11, 36, &CORE_XIO_PIN36, 3, 5, 1},
+	{12, 37, &CORE_XIO_PIN37, 3, 4, 1}
 };
 #endif
 const uint8_t QuadEncoder::_hardware_count =  (sizeof(QuadEncoder::hardware)/sizeof(QuadEncoder::hardware[0]));
@@ -93,14 +106,15 @@ void QuadEncoder::getConfig1(enc_config_t *config)
     config->enableReverseDirection = DISABLE;
     config->decoderWorkMode = DISABLE;
     config->HOMETriggerMode = DISABLE;
-    config->INDEXTriggerMode = DISABLE;
+    config->INDEXTriggerMode = 0;
 	config->IndexTrigger = DISABLE;
 	config->HomeTrigger = DISABLE;
     config->clearCounter = DISABLE;
     config->clearHoldCounter = DISABLE;
     config->filterCount = 0;
     config->filterSamplePeriod = 0;
-    config->positionMatchMode = DISABLE;
+    config->positionMatchMode = false;
+	config->positionCompareMode = DISABLE;
     config->positionCompareValue = 0xffffffff;
     config->revolutionCountCondition = DISABLE;
     config->enableModuloCountMode = DISABLE;
@@ -126,8 +140,9 @@ void QuadEncoder::printConfig(enc_config_t *config)
 	Serial.printf("\tfilterCount: %d\n",config->filterCount);
 	Serial.printf("\tfilterSamplePeriod: %d\n",config->filterSamplePeriod);
 	Serial.printf("\tpositionCompareValue: %x\n",config->positionCompareValue);
-	Serial.printf("\trevolutionCountCondition: %d\n",config->clearCounter);
-	Serial.printf("\tenableModuloCountMode: %d\n",config->clearHoldCounter);
+	Serial.printf("\trevolutionCountCondition: %d\n",config->revolutionCountCondition);
+	Serial.printf("\tenableModuloCountMode: %d\n",config->enableModuloCountMode);
+	Serial.printf("\tpositionModulusValue: %d\n", config->positionModulusValue);
 	
 	Serial.printf("\tpositionInitialValue: %d\n",config->positionInitialValue);
 	Serial.printf("\tpositionROIE: %d\n",config->positionROIE);
@@ -154,7 +169,7 @@ void QuadEncoder::Init(const enc_config_t *config)
     tmp16 = channel[_encoder_ch].ENC->CTRL & (uint16_t)(~(ENC_CTRL_W1C_FLAGS | ENC_CTRL_HIP_MASK | ENC_CTRL_HNE_MASK | ENC_CTRL_REV_MASK | ENC_CTRL_PH1_MASK | ENC_CTRL_XIP_MASK | ENC_CTRL_XNE_MASK | ENC_CTRL_WDE_MASK));
 	
     /* For HOME trigger. */
-    if (config->HOMETriggerMode != DISABLE)
+    if (config->HOMETriggerMode != 0)
     {
         tmp16 |= ENC_CTRL_HIP_MASK;
         if (FALLING_EDGE == config->HOMETriggerMode)
@@ -173,7 +188,7 @@ void QuadEncoder::Init(const enc_config_t *config)
         tmp16 |= ENC_CTRL_PH1_MASK;
     }
     /* For INDEX trigger. */
-    if (DISABLE != config->INDEXTriggerMode)
+    if (config->INDEXTriggerMode !=  0 )
     {
         tmp16 |= ENC_CTRL_XIP_MASK;
         if (FALLING_EDGE == config->INDEXTriggerMode)
@@ -244,6 +259,11 @@ void QuadEncoder::write(uint32_t value)
 	setConfigInitialPosition();
 }
 
+void QuadEncoder::setCompareValue(uint32_t compareValue) {
+    /* ENC_UCOMP & ENC_LCOMP. */
+    channel[_encoder_ch].ENC->UCOMP = (uint16_t)(compareValue >> 16U); /* Upper 16 bits. */
+    channel[_encoder_ch].ENC->LCOMP = (uint16_t)(compareValue);        /* Lower 16 bits. */
+}
 uint32_t QuadEncoder::getHoldPosition()
 {
     uint32_t ret32;
@@ -369,7 +389,7 @@ void QuadEncoder::enableInterrupts(const enc_config_t *config)
         tmp16 |= ENC_CTRL_XIE_MASK;
     }
 
-    if (config->positionMatchMode == ENABLE)
+    if (config->positionCompareMode == ENABLE)
     {
         tmp16 |= ENC_CTRL_CMPIE_MASK;
     }
@@ -534,6 +554,13 @@ void QuadEncoder::isr(uint8_t index)
 	if (ENC_CTRL_CMPIRQ_MASK == (ENC_CTRL_CMPIRQ_MASK & channel[index].ENC->CTRL))
     {
 		compareValueFlag = 1;
+		// 12/03/21 JWP add line below to disable compare interrupt
+		channel[index].ENC->CTRL &= ~ENC_CTRL_CMPIE_MASK;
 		clearStatusFlags(_positionCompareFlag, index);
 	}
+}
+
+void QuadEncoder::enableCompareInterrupt()
+{
+	channel[_encoder_ch].ENC->CTRL |= ENC_CTRL_CMPIE_MASK;
 }

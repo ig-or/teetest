@@ -58,21 +58,27 @@
 
 
 #define CORE_XIO_PIN0 IOMUXC_XBAR1_IN17_SELECT_INPUT	//ALT1
-#define CORE_XIO_PIN1 IOMUXC_XBAR1_IN16_SELECT_INPUT	//ALT1
-#define CORE_XIO_PIN2 IOMUXC_XBAR1_IN06_SELECT_INPUT	//ALT3
+#define CORE_XIO_PIN1 IOMUXC_XBAR1_IN16_SELECT_INPUT	// SD_B0_02 ALT1
+#define CORE_XIO_PIN2 IOMUXC_XBAR1_IN06_SELECT_INPUT	// EMC_04, ALT3
 #define CORE_XIO_PIN3 IOMUXC_XBAR1_IN07_SELECT_INPUT	//ALT3
 #define CORE_XIO_PIN4 IOMUXC_XBAR1_IN08_SELECT_INPUT	//ALT3
 #define CORE_XIO_PIN5 IOMUXC_XBAR1_IN17_SELECT_INPUT	//ALT3
 #define CORE_XIO_PIN7 IOMUXC_XBAR1_IN15_SELECT_INPUT	//ALT1
 #define CORE_XIO_PIN8 IOMUXC_XBAR1_IN14_SELECT_INPUT   	//ALT1
 #define CORE_XIO_PIN30 IOMUXC_XBAR1_IN23_SELECT_INPUT	//ALT1,0
-#define CORE_XIO_PIN31 IOMUXC_XBAR1_IN22_SELECT_INPUT	//ALT1,0
+#define CORE_XIO_PIN31 IOMUXC_XBAR1_IN22_SELECT_INPUT	//EMC_36, ALT1,0
 #define CORE_XIO_PIN33 IOMUXC_XBAR1_IN09_SELECT_INPUT   //ALT3,0
 
-#ifdef ARDUINO_TEENSY41
-#define CORE_XIO_PIN36 IOMUXC_XBAR1_IN16_SELECT_INPUT
-#define CORE_XIO_PIN37 IOMUXC_XBAR1_IN17_SELECT_INPUT
+#if defined(ARDUINO_TEENSY41)
+#define CORE_XIO_PIN36 IOMUXC_XBAR1_IN16_SELECT_INPUT // SD_B1_02, ALT1
+#define CORE_XIO_PIN37 IOMUXC_XBAR1_IN17_SELECT_INPUT // SC_B1_03, ALT1
 #endif
+
+#if defined(ARDUINO_TEENSY_MICROMOD)	
+#define CORE_XIO_PIN36 IOMUXC_XBAR1_IN05_SELECT_INPUT // SD_B0_01, ALT3
+#define CORE_XIO_PIN37 IOMUXC_XBAR1_IN04_SELECT_INPUT // SD_B0_00, ALT3
+#endif
+
 
 
 enum _flags
@@ -124,6 +130,8 @@ public:
 		/* 0 - POSMATCH pulses when a match occurs between the	position counters (POS) and the compare value (COMP). 1 - POSMATCH pulses when any position counter register is read. */
 		bool positionMatchMode;
 		
+		/* Position Compare Enabled. */
+		bool positionCompareMode;
 		/*!< Position compare value. The available value is a 32-bit number.*/
 		uint32_t positionCompareValue;   
 
@@ -188,6 +196,7 @@ public:
 	void Init(const enc_config_t *config);
 	int32_t read();
 	void write(uint32_t value);
+	void setCompareValue(uint32_t compareValue);
 	uint32_t getHoldPosition();
 	uint16_t getPositionDifference();
 	uint16_t getHoldDifference();
@@ -203,7 +212,8 @@ public:
 	void enableInterrupts(const enc_config_t *config);
 	void disableInterrupts(uint32_t flag);
 	void clearStatusFlags(uint32_t flag, uint8_t index);
-	
+	void enableCompareInterrupt();
+
 	// static class functions
 	static void isrEnc1();
 	static void isrEnc2();

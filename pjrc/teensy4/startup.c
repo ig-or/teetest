@@ -21,7 +21,7 @@ extern unsigned long _estack;
 extern unsigned long _extram_start;
 extern unsigned long _extram_end;
 
-__attribute__ ((used, aligned(1024)))
+__attribute__ ((used, aligned(1024), section(".vectorsram")))
 void (* volatile _VectorsRam[NVIC_NUM_INTERRUPTS+16])(void);
 
 static void memory_copy(uint32_t *dest, const uint32_t *src, uint32_t *dest_end);
@@ -146,10 +146,20 @@ void ResetHandler(void)
 	pwm_init();
 	tempmon_init();
 	startup_middle_hook();
-	while (millis() < 20) ; // wait at least 20ms before starting USB
-	usb_init();
 
-	while (millis() < 300) ; // wait at least 300ms before calling user code
+#if !defined(TEENSY_INIT_USB_DELAY_BEFORE)
+        #define TEENSY_INIT_USB_DELAY_BEFORE 20
+#endif
+#if !defined(TEENSY_INIT_USB_DELAY_AFTER)
+        #define TEENSY_INIT_USB_DELAY_AFTER 280
+#endif
+	// for background about this startup delay, please see these conversations
+	// https://forum.pjrc.com/threads/36606?p=113980&viewfull=1#post113980
+	// https://forum.pjrc.com/threads/31290?p=87273&viewfull=1#post87273
+
+	while (millis() < TEENSY_INIT_USB_DELAY_BEFORE) ; // wait
+	usb_init();
+	while (millis() < TEENSY_INIT_USB_DELAY_AFTER + TEENSY_INIT_USB_DELAY_BEFORE) ; // wait
 	//printf("before C++ constructors\n");
 	startup_late_hook();
 	__libc_init_array();
