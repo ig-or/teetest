@@ -90,9 +90,9 @@ extern "C" int main(void) {
 	pinMode(13, OUTPUT);
 	while (1) {
 		digitalWriteFast(13, HIGH);
-		delay(1500);
+		delay(20);
 		digitalWriteFast(13, LOW);
-		delay(1500);
+		delay(150);
 	}
 
 

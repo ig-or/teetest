@@ -176,15 +176,17 @@ endif()
 #)
 #
 
-add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
-	COMMAND scp   teetest.hex robot:/home/nano/prog 
-	COMMAND ssh   nano@robot /home/nano/teeload
-	COMMENT   "loading the code into the teensy board"
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-	VERBATIM
-	USES_TERMINAL
-)
 
+#
+#add_custom_command(TARGET ${PROJECT_NAME}  POST_BUILD 
+#	COMMAND scp   teetest.hex robot:/home/nano/prog 
+#	COMMAND ssh   nano@robot /home/nano/teeload
+#	COMMENT   "loading the code into the teensy board"
+#	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#	VERBATIM
+#	USES_TERMINAL
+#)
+#
 
 
 
